@@ -31,7 +31,26 @@ const routes = [
         path: '/:pathMatch(.*)*',
         name: 'NotFound',
         component: NotFound
-    }
+    },
+
+    {
+        path: '/fixture',
+        name: 'Fixture',
+        component: Fixture
+    },
+
+    {
+        path: '/partido/:id',
+        name: 'Partido',
+        component: DetallesPartido
+    },
+    
+    {
+        path: '/grupos/:id',
+        name: 'Grupos',
+        component: Grupos
+    },
+
 ]
 
 const router = createRouter({
