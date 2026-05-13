@@ -9,6 +9,12 @@ import TheWelcome from './components/TheWelcome.vue'
 
     <div class="wrapper">
       <HelloWorld msg="You did it!" />
+      <nav>
+      <router-link to="/home">Inicio</router-link>
+      <router-link to="/login">Login</router-link>
+    </nav>
+
+    <router-view />
     </div>
   </header>
 
