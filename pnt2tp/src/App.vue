@@ -2,6 +2,7 @@
 </script>
 
 <template>
+   <h1 class="title">Prode Mundial 2026</h1>
   <nav>
     <router-link to="/home">Inicio</router-link>
     <router-link to="/partidos">Partidos</router-link>
@@ -14,6 +15,10 @@
 </template>
 
 <style scoped>
+.title {
+  text-align: center;
+  margin-left: 10px;
+}
 nav {
   display: flex;
   justify-content: center;
