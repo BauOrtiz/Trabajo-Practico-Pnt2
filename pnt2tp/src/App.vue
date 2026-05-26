@@ -1,53 +1,38 @@
 <script setup>
-import HelloWorld from './components/HelloWorld.vue'
-import TheWelcome from './components/TheWelcome.vue'
 </script>
 
 <template>
-  <header>
-    <img alt="Vue logo" class="logo" src="./assets/logo.svg" width="125" height="125" />
-
-    <div class="wrapper">
-      <HelloWorld msg="You did it!" />
-      <nav>
-      <router-link to="/home">Inicio</router-link>
-      <router-link to="/login">Login</router-link>
-    </nav>
-
-    <router-view />
-    </div>
-  </header>
+  <nav>
+    <router-link to="/home">Inicio</router-link>
+    <router-link to="/partidos">Partidos</router-link>
+    <router-link to="/ranking">Ranking</router-link>
+    <router-link to="/prode">Prode</router-link>
+  </nav>
 
   <main>
-    <TheWelcome />
+    <router-view />
   </main>
 </template>
 
 <style scoped>
-header {
-  line-height: 1.5;
+nav {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  padding: 0.75rem;
+  background-color: white;
+  border-radius: 20px;
+  text-align: center;
+  font-size: 0.875rem;
 }
 
-.logo {
-  display: block;
-  margin: 0 auto 2rem;
+nav a {
+  color: #87CEEB;
+  padding: 2px 6px;
+  border-radius: 10px;
 }
-
-@media (min-width: 1024px) {
-  header {
-    display: flex;
-    place-items: center;
-    padding-right: calc(var(--section-gap) / 2);
-  }
-
-  .logo {
-    margin: 0 2rem 0 0;
-  }
-
-  header .wrapper {
-    display: flex;
-    place-items: flex-start;
-    flex-wrap: wrap;
-  }
+nav a:hover {
+  color: #1E90FF;
+  background-color: rgb(252, 252, 109);
 }
 </style>

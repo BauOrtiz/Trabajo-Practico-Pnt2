@@ -4,8 +4,19 @@ import Home from '../views/Home.vue'
 import Login from '../views/Login.vue'
 import Perfil from '../views/Perfil.vue'
 import NotFound from '../views/NotFound.vue'
+import Partidos from '../views/Partidos.vue'
+import DetallesPartido from '../views/DetallesPartido.vue'
+import Grupos from '../views/Grupos.vue'
+import DetallesGrupo from '../views/DetallesGrupo.vue'
+import Prode from '../views/Prode.vue'
+import Ranking from '../views/Ranking.vue'
+import Paises from '../views/Paises.vue'
+import Pais from '../views/Pais.vue'
+
+
 
 const routes = [
+//Basicos:
     {
         path: '/',
         redirect: '/home'
@@ -20,8 +31,6 @@ const routes = [
         name: 'Login',
         component: Login
     },
-
-
     {
         path: '/perfil/:id',
         name: 'Perfil',
@@ -33,23 +42,57 @@ const routes = [
         component: NotFound
     },
 
+//Partidos:
     {
-        path: '/fixture',
-        name: 'Fixture',
-        component: Fixture
+        path: '/partidos',
+        name: 'Partidos',
+        component: Partidos
     },
-
     {
         path: '/partido/:id',
-        name: 'Partido',
+        name: 'DetallesPartido',
         component: DetallesPartido
     },
-    
+
+//Grupos:
     {
-        path: '/grupos/:id',
+        path: '/grupos',
         name: 'Grupos',
         component: Grupos
     },
+
+    {
+        path: '/grupos/:id',
+        name: 'DetallesGrupo',
+        component: DetallesGrupo
+    },
+
+//Prode:
+    {
+        path:'/prode',
+        name: 'Prode',
+        component: Prode
+    },
+
+    {
+        path: '/ranking',
+        name: 'Ranking',
+        component: Ranking
+    },
+
+//Paises:
+    {
+        path:'/paises',
+        name: 'Paises',
+        component: Paises
+    },
+
+    {
+        path: '/paises/:id',
+        name: 'Pais',
+        component: Pais
+    }
+
 
 ]
 
