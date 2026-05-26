@@ -6,6 +6,7 @@
     <router-link to="/home">Inicio</router-link>
     <router-link to="/partidos">Partidos</router-link>
     <router-link to="/ranking">Ranking</router-link>
+    <router-link to="/prode">Prode</router-link>
   </nav>
 
   <main>
