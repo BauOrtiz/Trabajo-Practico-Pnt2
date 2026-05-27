@@ -2,37 +2,73 @@
 </script>
 
 <template>
-  <nav>
-    <router-link to="/home">Inicio</router-link>
-    <router-link to="/partidos">Partidos</router-link>
-    <router-link to="/ranking">Ranking</router-link>
-    <router-link to="/prode">Prode</router-link>
-  </nav>
+  <div class="app-layout">
+    <header class="header">
+      <nav class="navbar">
+        <router-link to="/home">Inicio</router-link>
+        <router-link to="/partidos">Partidos</router-link>
+        <router-link to="/ranking">Ranking</router-link>
+        <router-link to="/prode">Prode</router-link>
+      </nav>
+    </header>
 
-  <main>
-    <router-view />
-  </main>
+    <main class="main-content">
+      <router-view />
+    </main>
+  </div>
 </template>
 
 <style scoped>
-nav {
-  display: flex;
-  justify-content: center;
-  gap: 1rem;
-  padding: 0.75rem;
-  background-color: white;
-  border-radius: 20px;
-  text-align: center;
-  font-size: 0.875rem;
+.app-layout {
+  min-height: 100vh;
+  background: #111827;
 }
 
-nav a {
-  color: #87CEEB;
-  padding: 2px 6px;
-  border-radius: 10px;
+.header {
+  width: 100%;
+  padding: 18px 20px 8px;
 }
-nav a:hover {
-  color: #1E90FF;
-  background-color: rgb(252, 252, 109);
+
+.navbar {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 12px 18px;
+  display: flex;
+  justify-content: center;
+  gap: 24px;
+  background-color: #1f2937;
+  border: 1px solid #374151;
+  border-radius: 18px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+}
+
+.navbar a {
+  color: #93c5fd;
+  padding: 6px 10px;
+  border-radius: 10px;
+  text-decoration: none;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.navbar a:hover {
+  color: white;
+  background-color: #2563eb;
+}
+
+.navbar a.router-link-active {
+  color: white;
+  background-color: #2563eb;
+}
+
+.main-content {
+  width: 100%;
+}
+
+@media (max-width: 600px) {
+  .navbar {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
 }
 </style>
