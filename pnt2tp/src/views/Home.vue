@@ -1,31 +1,10 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue'
 import imagenInicio from '@/assets/img/prode-mundial-2026.png'
-import { obtenerPartidos } from '../services/partidosService'
+import { useProximosPartidos } from '../composables/Composable-Home.js'
+import { obtenerBanderaUrl } from '../utils/banderas.js'
 
-const partidos = ref([])
+const { proximosPartidos, partidosPorDia, formatearHora } = useProximosPartidos()
 
-const proximosPartidos = computed(() => {
-  const hoy = new Date()
-  const enUnaSemana = new Date()
-  enUnaSemana.setDate(hoy.getDate() + 7)
-
-  return partidos.value.filter((p) => {
-    const fecha = new Date(p.fecha)
-    return fecha >= hoy && fecha <= enUnaSemana
-  })
-})
-
-function formatearFecha(fecha) {
-  return new Date(fecha).toLocaleString('es-AR', {
-    dateStyle: 'short',
-    timeStyle: 'short'
-  })
-}
-
-onMounted(async () => {
-  partidos.value = await obtenerPartidos()
-})
 </script>
 
 <template>
@@ -45,12 +24,30 @@ onMounted(async () => {
         No hay partidos programados para esta semana.
       </div>
 
-      <div v-else class="lista">
-        <article v-for="partido in proximosPartidos" :key="partido.id" class="card">
-          <span class="equipos">{{ partido.local }} vs {{ partido.visitante }}</span>
-          <span class="fecha">{{ formatearFecha(partido.fecha) }}</span>
-        </article>
-      </div>
+      <template v-else>
+        <div v-for="(partidosDia, dia) in partidosPorDia" :key="dia" class="grupo-dia">
+          <div class="fecha-header">📅 {{ dia }}</div>
+
+          <article v-for="partido in partidosDia" :key="partido.id" class="card">
+            <div class="hora">
+              <span>🕐</span>
+              <span>{{ formatearHora(partido.fecha) }}</span>
+            </div>
+
+            <div class="equipo local">
+              <img :src="obtenerBanderaUrl(partido.local)" :alt="partido.local" class="bandera-img" />
+              <span class="nombre">{{ partido.local.toUpperCase() }}</span>
+            </div>
+
+            <div class="separador">-</div>
+
+            <div class="equipo visitante">
+              <span class="nombre">{{ partido.visitante.toUpperCase() }}</span>
+              <img :src="obtenerBanderaUrl(partido.visitante)" :alt="partido.visitante" class="bandera-img" />
+            </div>
+          </article>
+        </div>
+      </template>
     </section>
   </main>
 </template>
@@ -80,7 +77,7 @@ onMounted(async () => {
   font-size: 1.5rem;
   font-weight: bold;
   color: #fff;
-  margin-bottom: 1rem;
+  margin-bottom: 1.5rem;
 }
 
 .sin-partidos {
@@ -88,30 +85,76 @@ onMounted(async () => {
   font-style: italic;
 }
 
-.lista {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
+.grupo-dia {
+  margin-bottom: 1.5rem;
+}
+
+.fecha-header {
+  text-align: center;
+  font-weight: bold;
+  font-size: 0.95rem;
+  color: #f0b429;
+  margin-bottom: 0.6rem;
 }
 
 .card {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding: 0.9rem 1.2rem;
-  background-color: #0d1b2e;
-  border: 1px solid #1e3a5f;
-  border-radius: 10px;
-  color: #fff;
+  gap: 1rem;
+  padding: 0.75rem 1.25rem;
+  background-color: #ffffff;
+  border-radius: 50px;
+  color: #111;
+  margin-bottom: 0.5rem;
+  cursor: pointer;
+  transition: background-color 0.2s;
 }
 
-.equipos {
+.card:hover {
+  background-color: #f0f0f0;
+}
+
+.hora {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.85rem;
+  color: #666;
+  min-width: 85px;
+}
+
+.equipo {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+}
+
+.equipo.local {
+  justify-content: flex-end;
+}
+
+.equipo.visitante {
+  justify-content: flex-start;
+}
+
+.bandera-img {
+  width: 32px;
+  height: auto;
+  border-radius: 3px;
+}
+
+.nombre {
   font-weight: bold;
-  font-size: 1rem;
+  font-size: 0.9rem;
+  letter-spacing: 0.05em;
+  color: #111;
 }
 
-.fecha {
-  font-size: 0.9rem;
-  color: #7eb8f7;
+.separador {
+  font-weight: bold;
+  font-size: 1.2rem;
+  color: #999;
+  padding: 0 0.25rem;
 }
 </style>

@@ -7,61 +7,7 @@ const cargando = ref(true)
 const error = ref('')
 const grupoSeleccionado = ref('todos')
 
-const codigosPais = {
-  Mexico: 'mx',
-  'South Africa': 'za',
-  'South Korea': 'kr',
-  'Czech Republic': 'cz',
-  Canada: 'ca',
-  Argentina: 'ar',
-  Brazil: 'br',
-  Uruguay: 'uy',
-  Paraguay: 'py',
-  Colombia: 'co',
-  Ecuador: 'ec',
-  Chile: 'cl',
-  Peru: 'pe',
-  Bolivia: 'bo',
-  Venezuela: 've',
-  USA: 'us',
-  'United States': 'us',
-  Germany: 'de',
-  France: 'fr',
-  Spain: 'es',
-  Portugal: 'pt',
-  England: 'gb-eng',
-  Italy: 'it',
-  Netherlands: 'nl',
-  Belgium: 'be',
-  Croatia: 'hr',
-  Denmark: 'dk',
-  Switzerland: 'ch',
-  Austria: 'at',
-  Poland: 'pl',
-  Serbia: 'rs',
-  Morocco: 'ma',
-  Senegal: 'sn',
-  Tunisia: 'tn',
-  Egypt: 'eg',
-  Ghana: 'gh',
-  Nigeria: 'ng',
-  Cameroon: 'cm',
-  Japan: 'jp',
-  Australia: 'au',
-  Iran: 'ir',
-  'Saudi Arabia': 'sa',
-  Qatar: 'qa'
-}
-
-function obtenerBanderaUrl(equipo) {
-  const codigo = codigosPais[equipo]
-
-  if (!codigo) {
-    return 'https://flagcdn.com/w40/un.png'
-  }
-
-  return `https://flagcdn.com/w40/${codigo}.png`
-}
+import { obtenerBanderaUrl } from '../utils/banderas.js'
 
 onMounted(async () => {
   try {
