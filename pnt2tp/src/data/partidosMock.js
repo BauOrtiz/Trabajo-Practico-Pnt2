@@ -3,14 +3,14 @@ export const partidosMock = [
     id: 1,
     local: 'Argentina',
     visitante: 'Brasil',
-    fecha: '2026-06-12T16:00:00',
+    fecha: '2026-06-05T16:00:00',
     estado: 'Programado'
   },
   {
     id: 2,
     local: 'España',
     visitante: 'Francia',
-    fecha: '2026-06-15T19:00:00',
+    fecha: '2026-06-07T19:00:00',
     estado: 'Programado'
   },
   {
