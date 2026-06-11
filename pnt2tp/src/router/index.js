@@ -12,6 +12,7 @@ import Prode from '../views/Prode.vue'
 import Ranking from '../views/Ranking.vue'
 import Paises from '../views/Paises.vue'
 import Pais from '../views/Pais.vue'
+import Registro from '../views/Registro.vue'
 
 
 
@@ -40,6 +41,11 @@ const routes = [
         path: '/:pathMatch(.*)*',
         name: 'NotFound',
         component: NotFound
+    },
+     {
+        path: '/registro',
+        name: 'Registro',
+        component: Registro
     },
 
 //Partidos:
