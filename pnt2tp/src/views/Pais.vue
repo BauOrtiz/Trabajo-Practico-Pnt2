@@ -9,6 +9,7 @@ const paisId = route.params.id // El :id que viene de la URL
 const selecciones = ref([])
 const pais = ref(null)
 const loading = ref(true)
+const error = ref('')
 
 onMounted(async () => {
 

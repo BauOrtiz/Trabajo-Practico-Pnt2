@@ -17,7 +17,21 @@ export async function obtenerSelecciones() {
   const respuesta = await fetch(API_SELECCIONES)
 
   if (!respuesta.ok) {
-    throw new Error('No se pudieron obtener los partidos')
+    throw new Error('No se pudieron obtener las Selecciones')
+  }
+
+    return await respuesta.json()
+
+
+}
+
+const API_ESTADIOS = 'https://www.mockachino.com/603fe2b3-50c8-44/estadios'
+
+export async function obtenerEstadios() {
+  const respuesta = await fetch(API_ESTADIOS)
+
+  if (!respuesta.ok) {
+    throw new Error('No se pudieron obtener los Estadios')
   }
 
     return await respuesta.json()
