@@ -9,3 +9,19 @@ export async function obtenerPartidos() {
 
   return await respuesta.json()
 }
+
+
+const API_SELECCIONES = 'https://www.mockachino.com/603fe2b3-50c8-44/selecciones'
+
+export async function obtenerSelecciones() {
+  const respuesta = await fetch(API_SELECCIONES)
+
+  if (!respuesta.ok) {
+    throw new Error('No se pudieron obtener los partidos')
+  }
+
+    return await respuesta.json()
+
+
+}
+
