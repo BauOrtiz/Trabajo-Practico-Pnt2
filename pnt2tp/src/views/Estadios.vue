@@ -10,13 +10,16 @@
     const error = ref('')
 
     function detalleEstadio(id){
+        //al hacer click, llama a la url del estadio seleccionado pasando su id
         router.push(`/estadios/${id}`)
     }
 
 
 
     onMounted(async ()=>{
+        //llama al metodo que trae la lista de estadios de la api
         const respuesta= await obtenerEstadios()
+        //como viene dentro de{} le indico que quiero el atributo estadios, que contiene el array de los estadios
         estadios.value = respuesta.estadios
 
 

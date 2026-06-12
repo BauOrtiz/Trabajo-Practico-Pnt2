@@ -1,7 +1,6 @@
 <script setup>
 
     import { ref, onMounted } from 'vue'
-    // Importamos el servicio para que sea dinámico con tu lista
     import { obtenerSelecciones } from '../services/partidosService'
     import { useRouter } from 'vue-router'
 
@@ -11,12 +10,15 @@
     const error = ref('')
 
     function irDetalle(id){
+      //al hacer click, llama a la url del pais seleccionado pasando su id
     router.push(`/paises/${id}`)
     }   
 
     onMounted(async () => {
   try {
+    //llama al metodo que trae la lista de selecciones de la api
     const respuesta = await obtenerSelecciones()
+    //como viene dentro de{} le indico que quiero el atributo selecciones, que contiene el array de los paises
     selecciones.value =respuesta.selecciones
    
   } catch (e) {

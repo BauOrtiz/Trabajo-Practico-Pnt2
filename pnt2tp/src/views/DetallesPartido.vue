@@ -1,13 +1,14 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
-// Importamos el servicio para que sea dinámico con tu lista
-import { obtenerPartidos } from '../services/partidosService'
+import { obtenerPartidos2 } from '../services/partidosService'
 
 const route = useRoute()
-const partidoId = route.params.id // El :id que viene de la URL
+const partidoId = route.params.id
 const partido = ref(null)
-const loading = ref(true)
+const loading = ref(true)    
+const error = ref('')
+
 
 // Variables reactivas para capturar el pronóstico del usuario
 const pronosticoLocal = ref(null)
@@ -27,35 +28,19 @@ const unformatedDate = (fechaStr) => {
 
 onMounted(async () => {
   try {
-    // 1. Intentamos traer los partidos reales del servicio
-    const partidosData = await obtenerPartidos()
+    // llama al metodo que trae los partidos de mocachino
+    const partidosData = await obtenerPartidos2()
     
-    // 2. Le inyectamos los mismos IDs provisorios usando la misma lógica de la lista
-    const partidosConId = partidosData.map((p, index) => ({
-      ...p,
-      id: p.id || `${p.equipoLocal}-${p.equipoVisitante}-${index}`
-    }))
+    const partidos= partidosData.partidos
+        // buscamos en el array de estadios, un valor que coincida con el id que vino por url
+        partido.value= partidos.find(p=>p.id===partidoId)
 
-    // 3. Buscamos el partido por el ID de la URL
-    partido.value = partidosConId.find(p => p.id === partidoId)
+        if (partido) {
+            partido.value = estadioEncontrado 
+            } else {
+            error.value = "No se encontró el país en la base de datos."
+          }
 
-    // FALLBACK: Si no encuentra nada en la API (o estás probando local aislado), usa tu mock
-    if (!partido.value) {
-      const mockPartidos = [
-        {
-          "id": "Mexico-South Africa-0",
-          "grupoId": "A",
-          "equipoLocal": "Mexico",
-          "equipoVisitante": "South Africa",
-          "golesLocal": 0,
-          "golesVisitante": 0,
-          "fecha": "2026-06-11T13:00:00-06:00",
-          "estado": "programado"
-        }
-      ]
-      // Si el id de la URL coincide con el mock o si estás maquetando a ciegas
-      partido.value = mockPartidos.find(p => p.id === partidoId) || mockPartidos[0]
-    }
   } catch (error) {
     console.error("Error al traer el partido:", error)
   } finally {

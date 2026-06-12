@@ -11,6 +11,20 @@ export async function obtenerPartidos() {
 }
 
 
+//Link espacio crear mochachinos: https://www.mockachino.com/spaces/603fe2b3-50c8-44
+const API_PARTIDOS = 'https://www.mockachino.com/603fe2b3-50c8-44/partidos'
+
+export async function obtenerPartidos2() {
+  const respuesta = await fetch(API_PARTIDOS)
+
+  if (!respuesta.ok) {
+    throw new Error('No se pudieron obtener los partidos')
+  }
+
+  return await respuesta.json()
+}
+
+
 const API_SELECCIONES = 'https://www.mockachino.com/603fe2b3-50c8-44/selecciones'
 
 export async function obtenerSelecciones() {
