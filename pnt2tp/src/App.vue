@@ -10,6 +10,7 @@
         <router-link to="/ranking">Ranking</router-link>
         <router-link to="/prode">Prode</router-link>
         <router-link to="/login">LogIn</router-link>
+        <router-link to="/grupos">Grupos</router-link>
       </nav>
     </header>
 
