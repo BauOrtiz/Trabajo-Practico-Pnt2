@@ -8,19 +8,19 @@ const route = useRoute()
 const paisId = route.params.id // El :id que viene de la URL
 const selecciones = ref([])
 const pais = ref(null)
-const loading = ref(true)
+const error = ref('')
 
 onMounted(async () => {
 
-    // 1. Intentamos traer los partidos reales del servicio
+    // llama al metodo que trae los partidos de mocachino
       const respuesta = await obtenerSelecciones()
       selecciones.value =respuesta.selecciones
     
-    // 2. Le inyectamos los mismos IDs provisorios usando la misma lógica de la lista
+    // buscamos en el array de selecciones, un valor que coincida con el id que vino por url
         const paisEncontrado = selecciones.value.find(p=>p.id===paisId)
 
   if (paisEncontrado) {
-      pais.value = paisEncontrado // ¡Aquí desaparece el "Cargando" y muestra los datos!
+      pais.value = paisEncontrado
     } else {
       error.value = "No se encontró el país en la base de datos."
     }

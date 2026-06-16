@@ -10,7 +10,7 @@
         <router-link to="/ranking">Ranking</router-link>
         <router-link to="/prode">Prode</router-link>
         <router-link to="/Paises">Selecciones</router-link>
-
+        <router-link to="/Estadios">Estadios</router-link>
       </nav>
     </header>
 
