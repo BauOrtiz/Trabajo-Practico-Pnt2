@@ -8,28 +8,30 @@
 
     const email= ref('')
     const contrasenia=ref('')
+    const nombre=ref('')
 
-    const loguearse= async()=>{
-        if(!email.value || !contrasenia.value){
+    const registrarse= async()=>{
+        if(!email.value || !contrasenia.value || !nombre.value){
             return
         }
 
-        const exitoso= await authStore.login(email.value,contrasenia.value)
+        const exitoso= await authStore.register(nombre.value,email.value,contrasenia.value)
 
         if(exitoso){
-            router.push('/')
+            router.push('/login')
         }
-    }
-
-    function registrarse(){
-        router.push('/registro')
     }
 
 </script>
 
 <template>
-    <h1>Log In</h1>
-    <form @submit.prevent="loguearse">
+   <h1>Registro</h1>
+    <form @submit.prevent="registrarse">
+
+        <div class="form-group">
+        <label>Nombre</label>
+        <input v-model="nombre" type="text" required/>
+        </div>
 
         <div class="form-group">
         <label>Email</label>
@@ -44,12 +46,10 @@
         <p v-if="authStore.error" class="error-msg">{{ authStore.error }}</p>
 
          <button type="submit" :disabled="authStore.loading">
-            {{ authStore.loading ? 'Ingresando...' : 'Iniciar Sesión' }}
+            {{ authStore.loading ? 'Creando cuenta...' : 'Registrarse' }}
          </button>
-
-        <a @click.prevent="registrarse()">Registrarse</a>
-
-    </form>
+        
+        </form>
 
 </template>
 

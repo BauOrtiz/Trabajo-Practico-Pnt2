@@ -14,6 +14,7 @@ import Paises from '../views/Paises.vue'
 import Pais from '../views/Pais.vue'
 import Estadios from '../views/Estadios.vue'
 import DetalleEstadio from '../views/DetalleEstadio.vue'
+import Registro from '../views/Registro.vue'
 
 
 
@@ -42,6 +43,11 @@ const routes = [
         path: '/:pathMatch(.*)*',
         name: 'NotFound',
         component: NotFound
+    },
+     {
+        path: '/registro',
+        name: 'Registro',
+        component: Registro
     },
 
 //Partidos:
