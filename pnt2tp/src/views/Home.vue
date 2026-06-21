@@ -3,7 +3,7 @@ import imagenInicio from '@/assets/img/prode-mundial-2026.png'
 import { useProximosPartidos } from '../composables/Composable-Home.js'
 import { obtenerBanderaUrl } from '../utils/banderas.js'
 
-const { proximosPartidos, partidosPorDia, formatearHora } = useProximosPartidos()
+const { cargando, error, proximosPartidos, partidosPorDia, formatearHora } = useProximosPartidos()
 
 </script>
 
@@ -20,7 +20,15 @@ const { proximosPartidos, partidosPorDia, formatearHora } = useProximosPartidos(
     <section class="proximos-partidos">
       <h2>Próximos partidos</h2>
 
-      <div v-if="proximosPartidos.length === 0" class="sin-partidos">
+      <div v-if="cargando" class="sin-partidos">
+        Cargando partidos...
+      </div>
+
+      <div v-else-if="error" class="sin-partidos">
+        {{ error }}
+      </div>
+
+      <div v-else-if="proximosPartidos.length === 0" class="sin-partidos">
         No hay partidos programados para esta semana.
       </div>
 
@@ -31,19 +39,19 @@ const { proximosPartidos, partidosPorDia, formatearHora } = useProximosPartidos(
           <article v-for="partido in partidosDia" :key="partido.id" class="card">
             <div class="hora">
               <span>🕐</span>
-              <span>{{ formatearHora(partido.fecha) }}</span>
+              <span>{{ formatearHora(partido.fechaHora) }}</span>
             </div>
 
             <div class="equipo local">
-              <img :src="obtenerBanderaUrl(partido.local)" :alt="partido.local" class="bandera-img" />
-              <span class="nombre">{{ partido.local.toUpperCase() }}</span>
+              <img :src="obtenerBanderaUrl(partido.localId)" :alt="partido.localId" class="bandera-img" />
+              <span class="nombre">{{ partido.localId.toUpperCase() }}</span>
             </div>
 
             <div class="separador">-</div>
 
             <div class="equipo visitante">
-              <span class="nombre">{{ partido.visitante.toUpperCase() }}</span>
-              <img :src="obtenerBanderaUrl(partido.visitante)" :alt="partido.visitante" class="bandera-img" />
+              <span class="nombre">{{ partido.visitanteId.toUpperCase() }}</span>
+              <img :src="obtenerBanderaUrl(partido.visitanteId)" :alt="partido.visitanteId" class="bandera-img" />
             </div>
           </article>
         </div>
