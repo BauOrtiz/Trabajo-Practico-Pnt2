@@ -107,7 +107,9 @@ const { cargando, error, proximosPartidos, partidosPorDia, formatearHora } = use
 
 .card {
   display: flex;
+  position: relative;
   align-items: center;
+  justify-content: center;
   gap: 1rem;
   padding: 0.75rem 1.25rem;
   background-color: #ffffff;
@@ -124,6 +126,8 @@ const { cargando, error, proximosPartidos, partidosPorDia, formatearHora } = use
 
 .hora {
   display: flex;
+  position: absolute;
+  left: 1.25rem;
   align-items: center;
   gap: 0.3rem;
   font-size: 0.85rem;
@@ -135,7 +139,7 @@ const { cargando, error, proximosPartidos, partidosPorDia, formatearHora } = use
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  flex: 1;
+  width: 96px;
 }
 
 .equipo.local {
