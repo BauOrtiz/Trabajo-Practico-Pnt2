@@ -2,7 +2,6 @@
 import { computed, onMounted, ref } from 'vue'
 
 import { obtenerPartidos } from '../services/partidosService'
-import { obtenerEstadoPartido } from '../utils/estadoPartido.js'
 
 const partidos = ref([])
 const predicciones = ref([])
@@ -17,11 +16,7 @@ const prediccionEditandoId = ref(null)
 const mensaje = ref('')
 
 async function cargarPartidos() {
-  const partidosData = await obtenerPartidos()
-  partidos.value = partidosData.map((partido, index) => ({
-    ...partido,
-    id: partido.id || index + 1
-  }))
+  partidos.value = await obtenerPartidos()
 }
 
 const partidosDisponibles = computed(() => {
@@ -29,11 +24,11 @@ const partidosDisponibles = computed(() => {
 })
 
 function partidoDisponible(partido) {
-  return obtenerEstadoPartido(partido) === 'programado'
+  return new Date(partido.fecha) > new Date()
 }
 
 function obtenerPartidoPorId(partidoId) {
-  return partidos.value.find((partido) => String(partido.id) === String(partidoId))
+  return partidos.value.find((partido) => partido.id === Number(partidoId))
 }
 
 function guardarEnLocalStorage() {
@@ -84,7 +79,7 @@ function guardarPrediccion() {
     )
 
     if (prediccion) {
-      prediccion.partidoId = prediccionForm.value.partidoId
+      prediccion.partidoId = Number(prediccionForm.value.partidoId)
       prediccion.golesLocal = Number(prediccionForm.value.golesLocal)
       prediccion.golesVisitante = Number(prediccionForm.value.golesVisitante)
     }
@@ -92,7 +87,7 @@ function guardarPrediccion() {
     mensaje.value = 'Predicción editada correctamente.'
   } else {
     const yaExistePrediccion = predicciones.value.some(
-      (item) => String(item.partidoId) === String(prediccionForm.value.partidoId)
+      (item) => item.partidoId === Number(prediccionForm.value.partidoId)
     )
 
     if (yaExistePrediccion) {
@@ -102,7 +97,7 @@ function guardarPrediccion() {
 
     const nuevaPrediccion = {
       id: Date.now(),
-      partidoId: prediccionForm.value.partidoId,
+      partidoId: Number(prediccionForm.value.partidoId),
       golesLocal: Number(prediccionForm.value.golesLocal),
       golesVisitante: Number(prediccionForm.value.golesVisitante)
     }
@@ -235,9 +230,9 @@ onMounted(async () => {
       >
         <template v-if="obtenerPartidoPorId(prediccion.partidoId)">
           <h3>
-            {{ obtenerPartidoPorId(prediccion.partidoId).equipoLocal }}
+            {{ obtenerPartidoPorId(prediccion.partidoId).local }}
             vs
-            {{ obtenerPartidoPorId(prediccion.partidoId).equipoVisitante }}
+            {{ obtenerPartidoPorId(prediccion.partidoId).visitante }}
           </h3>
 
           <p>
