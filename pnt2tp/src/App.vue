@@ -9,6 +9,9 @@
         <router-link to="/partidos">Partidos</router-link>
         <router-link to="/ranking">Ranking</router-link>
         <router-link to="/prode">Prode</router-link>
+        <router-link to="/Paises">Selecciones</router-link>
+        <router-link to="/Estadios">Estadios</router-link>
+        <router-link to="/login">LogIn</router-link>
       </nav>
     </header>
 

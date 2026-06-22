@@ -12,6 +12,9 @@ import Prode from '../views/Prode.vue'
 import Ranking from '../views/Ranking.vue'
 import Paises from '../views/Paises.vue'
 import Pais from '../views/Pais.vue'
+import Estadios from '../views/Estadios.vue'
+import DetalleEstadio from '../views/DetalleEstadio.vue'
+import Registro from '../views/Registro.vue'
 
 
 
@@ -41,6 +44,11 @@ const routes = [
         name: 'NotFound',
         component: NotFound
     },
+     {
+        path: '/registro',
+        name: 'Registro',
+        component: Registro
+    },
 
 //Partidos:
     {
@@ -53,6 +61,19 @@ const routes = [
         name: 'DetallesPartido',
         component: DetallesPartido
     },
+
+//Estadios:
+    {
+        path: '/estadios',
+        name: 'Estadios',
+        component: Estadios
+    },
+    {
+        path: '/estadios/:id',
+        name: 'DetalleEstadio',
+        component: DetalleEstadio
+    },
+    
 
 //Grupos:
     {
