@@ -2,6 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 
 import { obtenerPartidos } from '../services/partidosService'
+import { obtenerEstadoPartido } from '../utils/estadoPartido.js'
 
 const partidos = ref([])
 const predicciones = ref([])
@@ -28,7 +29,7 @@ const partidosDisponibles = computed(() => {
 })
 
 function partidoDisponible(partido) {
-  return new Date(partido.fecha) > new Date()
+  return obtenerEstadoPartido(partido) === 'programado'
 }
 
 function obtenerPartidoPorId(partidoId) {

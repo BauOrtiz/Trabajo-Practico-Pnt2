@@ -1,6 +1,7 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
 import { obtenerPartidos } from '../services/partidosService'
+import { obtenerEstadoPartido } from '../utils/estadoPartido.js'
 
 const partidos = ref([])
 const cargando = ref(true)
@@ -55,11 +56,15 @@ function formatearFecha(fecha) {
 }
 
 function mostrarResultado(partido) {
-  if (partido.estado !== 'finalizado') {
+  if (obtenerEstadoPartido(partido) !== 'finalizado') {
     return 'vs'
   }
 
   return `${partido.golesLocal} - ${partido.golesVisitante}`
+}
+
+function mostrarEstado(partido) {
+  return obtenerEstadoPartido(partido)
 }
 </script>
 
@@ -98,7 +103,7 @@ function mostrarResultado(partido) {
       >
         <div class="datos-superiores">
           <span class="grupo">Grupo {{ partido.grupoId }}</span>
-          <span class="estado">{{ partido.estado }}</span>
+          <span class="estado">{{ mostrarEstado(partido) }}</span>
         </div>
 
         <div class="enfrentamiento">
