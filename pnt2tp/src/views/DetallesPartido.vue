@@ -1,7 +1,8 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
-import { obtenerPartidos2 } from '../services/partidosService'
+import { obtenerPartidos } from '../services/partidosService'
+import { obtenerEstadoPartido } from '../utils/estadoPartido.js'
 
 const route = useRoute()
 const partidoId = route.params.id
@@ -29,14 +30,14 @@ const unformatedDate = (fechaStr) => {
 onMounted(async () => {
   try {
     // llama al metodo que trae los partidos de mocachino
-    const partidosData = await obtenerPartidos2()
+    const partidosData = await obtenerPartidos()
     
-    const partidos= partidosData.partidos
+    const partidos= partidosData
         // buscamos en el array de estadios, un valor que coincida con el id que vino por url
         partido.value= partidos.find(p=>p.id===partidoId)
 
-        if (partido) {
-            partido.value = estadioEncontrado 
+        if (partido.value) {
+            error.value = ''
             } else {
             error.value = "No se encontró el país en la base de datos."
           }
@@ -84,10 +85,10 @@ const guardarPronostico = () => {
 
       <div class="info-adicional">
         <p><strong>Fecha:</strong> {{ unformatedDate(partido.fecha) }}</p>
-        <p><strong>Estado:</strong> <span class="estado-texto">{{ partido.estado }}</span></p>
+        <p><strong>Estado:</strong> <span class="estado-texto">{{ obtenerEstadoPartido(partido) }}</span></p>
       </div>
 
-      <div class="prode-section" v-if="partido.estado === 'programado'">
+      <div class="prode-section" v-if="obtenerEstadoPartido(partido) === 'programado'">
         <h3>Cargar mi Pronóstico</h3>
         <div class="prode-inputs">
           <input 

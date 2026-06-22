@@ -33,7 +33,7 @@ function partidoDisponible(partido) {
 }
 
 function obtenerPartidoPorId(partidoId) {
-  return partidos.value.find((partido) => partido.id === Number(partidoId))
+  return partidos.value.find((partido) => String(partido.id) === String(partidoId))
 }
 
 function guardarEnLocalStorage() {
@@ -84,7 +84,7 @@ function guardarPrediccion() {
     )
 
     if (prediccion) {
-      prediccion.partidoId = Number(prediccionForm.value.partidoId)
+      prediccion.partidoId = prediccionForm.value.partidoId
       prediccion.golesLocal = Number(prediccionForm.value.golesLocal)
       prediccion.golesVisitante = Number(prediccionForm.value.golesVisitante)
     }
@@ -92,7 +92,7 @@ function guardarPrediccion() {
     mensaje.value = 'Predicción editada correctamente.'
   } else {
     const yaExistePrediccion = predicciones.value.some(
-      (item) => item.partidoId === Number(prediccionForm.value.partidoId)
+      (item) => String(item.partidoId) === String(prediccionForm.value.partidoId)
     )
 
     if (yaExistePrediccion) {
@@ -102,7 +102,7 @@ function guardarPrediccion() {
 
     const nuevaPrediccion = {
       id: Date.now(),
-      partidoId: Number(prediccionForm.value.partidoId),
+      partidoId: prediccionForm.value.partidoId,
       golesLocal: Number(prediccionForm.value.golesLocal),
       golesVisitante: Number(prediccionForm.value.golesVisitante)
     }
@@ -235,9 +235,9 @@ onMounted(async () => {
       >
         <template v-if="obtenerPartidoPorId(prediccion.partidoId)">
           <h3>
-            {{ obtenerPartidoPorId(prediccion.partidoId).local }}
+            {{ obtenerPartidoPorId(prediccion.partidoId).equipoLocal }}
             vs
-            {{ obtenerPartidoPorId(prediccion.partidoId).visitante }}
+            {{ obtenerPartidoPorId(prediccion.partidoId).equipoVisitante }}
           </h3>
 
           <p>

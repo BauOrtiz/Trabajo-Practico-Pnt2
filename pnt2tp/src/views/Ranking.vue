@@ -42,7 +42,7 @@ const partidosDelGrupo = computed(() => {
 const prediccionesPorPartido = computed(() => {
   return new Map(
     predicciones.value.map((prediccion) => [
-      Number(prediccion.partidoId),
+      String(prediccion.partidoId),
       prediccion
     ])
   )
@@ -143,7 +143,7 @@ const rankingApostado = computed(() => {
   const tabla = crearTablaBase()
 
   for (const partido of partidosDelGrupo.value) {
-    const prediccion = prediccionesPorPartido.value.get(Number(partido.id))
+    const prediccion = prediccionesPorPartido.value.get(String(partido.id))
     if (!prediccion) continue
 
     sumarPartido(

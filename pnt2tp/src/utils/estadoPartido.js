@@ -2,6 +2,12 @@ const DURACION_PARTIDO_MS = 2 * 60 * 60 * 1000
 
 // Esta funcion calcula el estado del partido segun su horario.
 export function obtenerEstadoPartido(partido, ahora = new Date()) {
+  const estadoApi = partido.estado?.toLowerCase()
+
+  if (estadoApi === 'finalizado') {
+    return 'finalizado'
+  }
+
   const fechaPartido = partido.fechaHora || partido.fecha
   const inicio = new Date(fechaPartido)
 
