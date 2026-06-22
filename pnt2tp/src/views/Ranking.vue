@@ -3,7 +3,7 @@ import { computed, onMounted, ref } from 'vue'
 import { obtenerPartidos } from '../services/partidosService'
 import { obtenerBanderaUrl } from '../utils/banderas.js'
 import { obtenerEstadoPartido } from '../utils/estadoPartido.js'
-
+//bau
 const partidos = ref([])
 const predicciones = ref([])
 const grupoSeleccionado = ref('A')
