@@ -3,7 +3,7 @@ import imagenInicio from '@/assets/img/prode-mundial-2026.png'
 import { useProximosPartidos } from '../composables/Composable-Home.js'
 import { obtenerBanderaUrl } from '../utils/banderas.js'
 
-const { cargando, error, proximosPartidos, partidosPorDia, formatearHora } = useProximosPartidos()
+const { proximosPartidos, partidosPorDia, formatearHora } = useProximosPartidos()
 
 </script>
 
@@ -20,15 +20,7 @@ const { cargando, error, proximosPartidos, partidosPorDia, formatearHora } = use
     <section class="proximos-partidos">
       <h2>Próximos partidos</h2>
 
-      <div v-if="cargando" class="sin-partidos">
-        Cargando partidos...
-      </div>
-
-      <div v-else-if="error" class="sin-partidos">
-        {{ error }}
-      </div>
-
-      <div v-else-if="proximosPartidos.length === 0" class="sin-partidos">
+      <div v-if="proximosPartidos.length === 0" class="sin-partidos">
         No hay partidos programados para esta semana.
       </div>
 
@@ -39,19 +31,19 @@ const { cargando, error, proximosPartidos, partidosPorDia, formatearHora } = use
           <article v-for="partido in partidosDia" :key="partido.id" class="card">
             <div class="hora">
               <span>🕐</span>
-              <span>{{ formatearHora(partido.fechaHora) }}</span>
+              <span>{{ formatearHora(partido.fecha) }}</span>
             </div>
 
             <div class="equipo local">
-              <img :src="obtenerBanderaUrl(partido.localId)" :alt="partido.localId" class="bandera-img" />
-              <span class="nombre">{{ partido.localId.toUpperCase() }}</span>
+              <img :src="obtenerBanderaUrl(partido.local)" :alt="partido.local" class="bandera-img" />
+              <span class="nombre">{{ partido.local.toUpperCase() }}</span>
             </div>
 
             <div class="separador">-</div>
 
             <div class="equipo visitante">
-              <span class="nombre">{{ partido.visitanteId.toUpperCase() }}</span>
-              <img :src="obtenerBanderaUrl(partido.visitanteId)" :alt="partido.visitanteId" class="bandera-img" />
+              <span class="nombre">{{ partido.visitante.toUpperCase() }}</span>
+              <img :src="obtenerBanderaUrl(partido.visitante)" :alt="partido.visitante" class="bandera-img" />
             </div>
           </article>
         </div>
@@ -107,9 +99,7 @@ const { cargando, error, proximosPartidos, partidosPorDia, formatearHora } = use
 
 .card {
   display: flex;
-  position: relative;
   align-items: center;
-  justify-content: center;
   gap: 1rem;
   padding: 0.75rem 1.25rem;
   background-color: #ffffff;
@@ -126,8 +116,6 @@ const { cargando, error, proximosPartidos, partidosPorDia, formatearHora } = use
 
 .hora {
   display: flex;
-  position: absolute;
-  left: 1.25rem;
   align-items: center;
   gap: 0.3rem;
   font-size: 0.85rem;
@@ -139,7 +127,7 @@ const { cargando, error, proximosPartidos, partidosPorDia, formatearHora } = use
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  width: 96px;
+  flex: 1;
 }
 
 .equipo.local {

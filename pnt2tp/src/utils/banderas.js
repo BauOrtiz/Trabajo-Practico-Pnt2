@@ -1,54 +1,3 @@
-const codigosFifa = {
-    ALG: 'dz',
-    ARG: 'ar',
-    AUS: 'au',
-    AUT: 'at',
-    BEL: 'be',
-    BRA: 'br',
-    CAN: 'ca',
-    CHI: 'cl',
-    CHN: 'cn',
-    CMR: 'cm',
-    COL: 'co',
-    CRC: 'cr',
-    CRO: 'hr',
-    DEN: 'dk',
-    ECU: 'ec',
-    EGY: 'eg',
-    ENG: 'gb-eng',
-    FRA: 'fr',
-    GER: 'de',
-    GHA: 'gh',
-    IRQ: 'iq',
-    IRN: 'ir',
-    ITA: 'it',
-    JPN: 'jp',
-    KOR: 'kr',
-    KSA: 'sa',
-    MAR: 'ma',
-    MEX: 'mx',
-    NED: 'nl',
-    NGA: 'ng',
-    NZL: 'nz',
-    OMA: 'om',
-    PER: 'pe',
-    POL: 'pl',
-    POR: 'pt',
-    QAT: 'qa',
-    RSA: 'za',
-    SEN: 'sn',
-    SPA: 'es',
-    SRB: 'rs',
-    SUI: 'ch',
-    SWE: 'se',
-    TUN: 'tn',
-    UAE: 'ae',
-    UKR: 'ua',
-    URU: 'uy',
-    USA: 'us',
-    WAL: 'gb-wls',
-}
-
 export const codigosPais = {
     Mexico: 'mx',
     'South Africa': 'za',
@@ -112,7 +61,7 @@ export const codigosPais = {
 }
 
 export function obtenerBanderaUrl(equipo) {
-    const codigo = codigosFifa[equipo] ?? codigosPais[equipo]
+    const codigo = codigosPais[equipo]
     return codigo
         ? `https://flagcdn.com/w40/${codigo}.png`
         : 'https://flagcdn.com/w40/un.png'

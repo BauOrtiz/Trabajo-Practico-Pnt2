@@ -1,7 +1,6 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
 import { obtenerPartidos } from '../services/partidosService'
-import { obtenerEstadoPartido } from '../utils/estadoPartido.js'
 
 const partidos = ref([])
 const cargando = ref(true)
@@ -10,20 +9,9 @@ const grupoSeleccionado = ref('todos')
 
 import { obtenerBanderaUrl } from '../utils/banderas.js'
 
-import { useRouter } from 'vue-router'
-const router = useRouter()
-
-function irAlDetalle(id) {
-  router.push(`/partido/${id}`)
-}
-
 onMounted(async () => {
   try {
     partidos.value = await obtenerPartidos()
-    partidos.value = partidos.value.map((partido, index) => ({
-      ...partido,
-      id: partido.id || `${partido.equipoLocal}-${partido.equipoVisitante}-${index}`
-    }))
   } catch (e) {
     error.value = 'No se pudieron cargar los partidos.'
   } finally {
@@ -56,15 +44,11 @@ function formatearFecha(fecha) {
 }
 
 function mostrarResultado(partido) {
-  if (obtenerEstadoPartido(partido) !== 'finalizado') {
+  if (partido.estado !== 'finalizado') {
     return 'vs'
   }
 
   return `${partido.golesLocal} - ${partido.golesVisitante}`
-}
-
-function mostrarEstado(partido) {
-  return obtenerEstadoPartido(partido)
 }
 </script>
 
@@ -93,17 +77,14 @@ function mostrarEstado(partido) {
     </section>
 
     <section v-else class="contenedor-partidos">
-      
       <article
         v-for="partido in partidosFiltrados"
         :key="partido.id"
         class="tarjeta-partido"
-        @click="irAlDetalle(partido.id)" 
-        style="cursor: pointer;"
       >
         <div class="datos-superiores">
           <span class="grupo">Grupo {{ partido.grupoId }}</span>
-          <span class="estado">{{ mostrarEstado(partido) }}</span>
+          <span class="estado">{{ partido.estado }}</span>
         </div>
 
         <div class="enfrentamiento">
