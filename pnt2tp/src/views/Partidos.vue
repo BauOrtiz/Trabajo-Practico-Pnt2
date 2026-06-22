@@ -9,20 +9,9 @@ const grupoSeleccionado = ref('todos')
 
 import { obtenerBanderaUrl } from '../utils/banderas.js'
 
-import { useRouter } from 'vue-router'
-const router = useRouter()
-
-function irAlDetalle(id) {
-  router.push(`/partido/${id}`)
-}
-
 onMounted(async () => {
   try {
     partidos.value = await obtenerPartidos()
-    partidos.value = partidos.value.map((partido, index) => ({
-      ...partido,
-      id: partido.id || `${partido.equipoLocal}-${partido.equipoVisitante}-${index}`
-    }))
   } catch (e) {
     error.value = 'No se pudieron cargar los partidos.'
   } finally {
@@ -88,13 +77,10 @@ function mostrarResultado(partido) {
     </section>
 
     <section v-else class="contenedor-partidos">
-      
       <article
         v-for="partido in partidosFiltrados"
         :key="partido.id"
         class="tarjeta-partido"
-        @click="irAlDetalle(partido.id)" 
-        style="cursor: pointer;"
       >
         <div class="datos-superiores">
           <span class="grupo">Grupo {{ partido.grupoId }}</span>
