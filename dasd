@@ -1,0 +1,37 @@
+* [33m075c9d3[m[33m ([m[1;31morigin/estadiosPartido[m[33m)[m Agregar manejo de errores en la función obtenerPartidos y mejorar la vista de estadios con nuevos estilos y datos.
+* [33m845768a[m Implementar nuevos métodos para obtener partidos y estadios desde la API de Mockachino, y agregar manejo de errores en las vistas correspondientes.
+* [33m995fc81[m Agregar vista de estadios y detalle de estadio, incluyendo la funcionalidad para obtener datos desde la API.
+* [33m9416e01[m[33m ([m[1;31morigin/detallePartido[m[33m)[m se agrero la vista de selecciones, con una lista y la vista del detalle del pais. usando otra api estatica
+*   [33m14c14a5[m Merge pull request #9 from BauOrtiz/dev
+[32m|[m[33m\[m  
+* [33m|[m [33mde847e5[m Implementar la visualización de detalles del partido y la funcionalidad para guardar pronósticos del usuario.
+[33m|[m [33m|[m * [33m53b075c[m[33m ([m[1;31morigin/dev[m[33m)[m Merge pull request #10 from BauOrtiz/feature/login
+[33m|[m [33m|[m[33m/[m[35m|[m 
+[33m|[m [33m|[m * [33m2fbe52b[m Se agrego el LogIn y el Registro Funcional con la api
+[33m|[m [33m|[m[33m/[m  
+[33m|[m *   [33mb795bae[m Merge pull request #8 from BauOrtiz/agregandoPinia
+[33m|[m [36m|[m[1;31m\[m  
+[33m|[m [36m|[m * [33m0474199[m Add Pinia for state management and create auth store
+[33m|[m [36m|[m[33m/[m  
+[33m|[m[33m/[m[36m|[m   
+* [36m|[m   [33m5e46589[m[33m ([m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m Merge pull request #7 from BauOrtiz/creando-tabla
+[1;32m|[m[1;33m\[m [36m\[m  
+[1;32m|[m * [36m|[m [33mf57bc63[m[33m ([m[1;31morigin/creando-tabla[m[33m)[m Reestructurar los componentes «Inicio» y «Partidos»; implementar la función «composable» para los próximos partidos y la función «utility» para las URL de los marcadores.
+[1;32m|[m * [36m|[m [33m0ab27b4[m Creando el apartado de proximos partidos
+[1;32m|[m [36m|[m[36m/[m  
+[1;32m|[m *   [33mbc11832[m Merge pull request #6 from BauOrtiz/feature/prode
+[1;32m|[m [1;34m|[m[1;35m\[m  
+[1;32m|[m [1;34m|[m * [33mf7b15ea[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mfeature/prode[m[33m, [m[1;31morigin/feature/prode[m[33m)[m Agrega partidos, banderas e imagen de inicio
+[1;32m|[m * [1;35m|[m [33m0e2ae71[m Merge pull request #5 from BauOrtiz/feature/prode
+[1;32m|[m [1;36m|[m[1;35m\[m[1;35m|[m 
+[1;32m|[m [1;36m|[m * [33m5b0eb99[m Agrega CRUD inicial de predicciones para prode
+[1;32m|[m [1;36m|[m[1;32m/[m  
+[1;32m|[m[1;32m/[m[1;36m|[m   
+[1;32m|[m [1;36m|[m * [33m4cae88a[m[33m ([m[1;31morigin/conectando-con-la-api[m[33m)[m moviendo el h1 a la app
+[1;32m|[m [1;36m|[m[1;32m/[m  
+[1;32m|[m[1;32m/[m[1;36m|[m   
+* [1;36m|[m   [33ma0929d6[m[33m ([m[1;32mmain[m[33m)[m Merge pull request #4 from BauOrtiz/planeandoRutas
+[1;36m|[m[34m\[m [1;36m\[m  
+[1;36m|[m [34m|[m[1;36m/[m  
+[1;36m|[m[1;36m/[m[34m|[m   
+[1;36m|[m * [33m16c462c[m aplicando estilos basicos
