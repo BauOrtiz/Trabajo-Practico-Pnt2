@@ -115,8 +115,8 @@ onMounted(async () => {
         </svg>
       </button>
 
-      <!-- Navbar original, queda oculta por ahora pero se conserva para reutilizarla. -->
-      <nav class="navbar navbar-hidden" aria-label="Navegacion principal">
+      <!-- Navbar principal de la aplicacion. -->
+      <nav class="navbar" aria-label="Navegacion principal">
         <router-link
           v-for="link in linksNavbar"
           :key="link.to"
@@ -231,11 +231,9 @@ onMounted(async () => {
 
 .header {
   width: 100%;
-  position: absolute;
-  top: 0;
-  left: 0;
+  position: relative;
   z-index: 30;
-  pointer-events: none;
+  padding: 18px 20px 8px;
 }
 
 .menu-button {
@@ -251,7 +249,6 @@ onMounted(async () => {
   border-radius: 10px;
   background: #1f2937;
   cursor: pointer;
-  pointer-events: auto;
 }
 
 .menu-button svg {
@@ -283,10 +280,6 @@ onMounted(async () => {
   border: 1px solid #374151;
   border-radius: 18px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
-}
-
-.navbar-hidden {
-  display: none;
 }
 
 .navbar a,
