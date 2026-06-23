@@ -34,7 +34,7 @@ const { cargando, error, proximosPartidos, partidosPorDia, formatearHora } = use
 
       <template v-else>
         <div v-for="(partidosDia, dia) in partidosPorDia" :key="dia" class="grupo-dia">
-          <div class="fecha-header">📅 {{ dia }}</div>
+          <div class="fecha-header"> {{ dia }}</div>
 
           <article v-for="partido in partidosDia" :key="partido.id" class="card">
             <div class="hora">

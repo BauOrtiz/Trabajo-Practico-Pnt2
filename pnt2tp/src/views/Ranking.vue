@@ -53,7 +53,7 @@ function cargarPredicciones() {
   predicciones.value = prediccionesGuardadas ? JSON.parse(prediccionesGuardadas) : []
 }
 
-// Esta funcion calcula los grupos disponibles.
+// Esta funcion calcula los grupos disponibles
 const grupos = computed(() => {
   const gruposUnicos = partidos.value
     .map((partido) => partido.grupoId)
@@ -62,12 +62,12 @@ const grupos = computed(() => {
   return [...new Set(gruposUnicos)].sort()
 })
 
-// Esta funcion filtra los partidos del grupo seleccionado.
+// Esta funcion filtra los partidos del grupo seleccionado
 const partidosDelGrupo = computed(() => {
   return partidos.value.filter((partido) => partido.grupoId === grupoSeleccionado.value)
 })
 
-// Esta funcion ordena las predicciones por id de partido.
+// Esta funcion ordena las predicciones por id de partido
 const prediccionesPorPartido = computed(() => {
   return new Map(
     predicciones.value.map((prediccion) => [
@@ -77,7 +77,7 @@ const prediccionesPorPartido = computed(() => {
   )
 })
 
-// Esta funcion crea una fila inicial para un equipo.
+// Esta funcion crea una fila inicial para un equipo
 function crearFila(equipo) {
   return {
     equipo,
@@ -92,7 +92,7 @@ function crearFila(equipo) {
   }
 }
 
-// Esta funcion suma un resultado a la tabla de posiciones.
+// Esta funcion suma un resultado a la tabla de posiciones
 function sumarPartido(tabla, equipoLocal, equipoVisitante, golesLocal, golesVisitante) {
   if (!tabla.has(equipoLocal)) tabla.set(equipoLocal, crearFila(equipoLocal))
   if (!tabla.has(equipoVisitante)) tabla.set(equipoVisitante, crearFila(equipoVisitante))
@@ -126,7 +126,7 @@ function sumarPartido(tabla, equipoLocal, equipoVisitante, golesLocal, golesVisi
   visitante.diferencia = visitante.golesFavor - visitante.golesContra
 }
 
-// Esta funcion ordena la tabla por puntos y diferencia de gol.
+// Esta funcion ordena la tabla por puntos y diferencia de gol
 function ordenarTabla(tabla) {
   return [...tabla.values()].sort((a, b) => {
     if (b.puntos !== a.puntos) return b.puntos - a.puntos
@@ -136,7 +136,7 @@ function ordenarTabla(tabla) {
   })
 }
 
-// Esta funcion crea la tabla base con todos los equipos del grupo.
+// Esta funcion crea la tabla base con todos los equipos del grupo
 function crearTablaBase() {
   const tabla = new Map()
 
@@ -148,7 +148,7 @@ function crearTablaBase() {
   return tabla
 }
 
-// Esta funcion calcula el ranking con resultados reales.
+// Esta funcion calcula el ranking con resultados reales
 const rankingReal = computed(() => {
   const tabla = crearTablaBase()
 
@@ -167,7 +167,7 @@ const rankingReal = computed(() => {
   return ordenarTabla(tabla)
 })
 
-// Esta funcion calcula el ranking con las predicciones del usuario.
+// Esta funcion calcula el ranking con las predicciones del usuario
 const rankingApostado = computed(() => {
   const tabla = crearTablaBase()
 
@@ -187,11 +187,11 @@ const rankingApostado = computed(() => {
   return ordenarTabla(tabla)
 })
 
-// Esta funcion carga los datos al entrar a la pagina.
+// Esta funcion carga los datos al entrar a la pagina
 onMounted(async () => {
   try {
     cargarPredicciones()
-    partidos.value = normalizarPartidos(await obtenerPartidos())
+    partidos.value = await obtenerPartidos()
   } catch (e) {
     error.value = 'No se pudo cargar el ranking.'
   } finally {
