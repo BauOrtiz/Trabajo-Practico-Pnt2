@@ -13,17 +13,15 @@ import { obtenerBanderaUrl } from '../utils/banderas.js'
 import { useRouter } from 'vue-router'
 const router = useRouter()
 
+// Navega al detalle del partido seleccionado
 function irAlDetalle(id) {
   router.push(`/partido/${id}`)
 }
 
+// Carga los partidos al iniciar la vista
 onMounted(async () => {
   try {
     partidos.value = await obtenerPartidos()
-    partidos.value = partidos.value.map((partido, index) => ({
-      ...partido,
-      id: partido.id || `${partido.equipoLocal}-${partido.equipoVisitante}-${index}`
-    }))
   } catch (e) {
     error.value = 'No se pudieron cargar los partidos.'
   } finally {
@@ -31,11 +29,13 @@ onMounted(async () => {
   }
 })
 
+// Obtiene la lista de grupos disponibles para el filtro
 const grupos = computed(() => {
   const gruposUnicos = partidos.value.map((partido) => partido.grupoId)
   return [...new Set(gruposUnicos)].sort()
 })
 
+// Devuelve los partidos segun el grupo seleccionado
 const partidosFiltrados = computed(() => {
   if (grupoSeleccionado.value === 'todos') {
     return partidos.value
@@ -46,6 +46,7 @@ const partidosFiltrados = computed(() => {
   )
 })
 
+// Formatea la fecha del partido en formato local
 function formatearFecha(fecha) {
   const fechaPartido = new Date(fecha)
 
@@ -55,6 +56,7 @@ function formatearFecha(fecha) {
   })
 }
 
+// Muestra el resultado si el partido finalizo, o "vs" si todavia no
 function mostrarResultado(partido) {
   if (obtenerEstadoPartido(partido) !== 'finalizado') {
     return 'vs'
@@ -63,6 +65,7 @@ function mostrarResultado(partido) {
   return `${partido.golesLocal} - ${partido.golesVisitante}`
 }
 
+// Obtiene el estado actual del partido
 function mostrarEstado(partido) {
   return obtenerEstadoPartido(partido)
 }
