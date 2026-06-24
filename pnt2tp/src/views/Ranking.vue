@@ -313,7 +313,7 @@ onMounted(async () => {
       </article>
     </section>
 
-    <!-- ── RANKING AMIGOS (agregado por Martu) ── -->
+    <!-- ── RANKING AMIGOS ── -->
     <section class="ranking-amigos">
       <h2 class="amigos-titulo">Ranking de amigos</h2>
 
