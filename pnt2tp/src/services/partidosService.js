@@ -29,7 +29,7 @@ export async function obtenerPartidos() {
 }
 
 
-//Link espacio crear mochachinos: https://www.mockachino.com/spaces/603fe2b3-50c8-44
+//Link espacio crear mockachinos: https://www.mockachino.com/spaces/603fe2b3-50c8-44
 const API_PARTIDOS = API_URL
 
 export async function obtenerPartidos2() {

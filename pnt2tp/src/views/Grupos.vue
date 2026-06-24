@@ -4,79 +4,23 @@
 
 import { computed, onMounted, ref } from 'vue'
 
-//busco desde partido services "obtener partidos" para mostrar los partidos en la tabla de grupos
+// importo la función obtenerPartidos desde el archivo de servicios partidosService.js
+// importo la función obtenerBanderaUrl desde el archivo de utilidades banderas.js
 
 import { obtenerPartidos } from '../services/partidosService'
+import { obtenerBanderaUrl } from '../utils/banderas.js'
 
 // declaro variables reactivas para manejar el estado de los partidos, la carga y los errores
-// declaro partidos como un array vacío, cargando como true y error como una cadena vacía
+// la variable reactiva hace que vue actualice automáticamente la vista cuando cambian sus valores, 
+// lo que permite que la interfaz de usuario refleje el estado actual de los datos sin necesidad de recargar la página
+
+// declaro tres variables reactivas: 
+// partidos como un array vacío, cargando como true y error como una cadena vacía
 
 const partidos = ref([])
 const cargando = ref(true)
 const error = ref('')
 
-// creo un objeto con los códigos de país para obtener las banderas de cada equipo
-// estos códigos corresponden a https://flagpedia.net/continent/
-
-const codigosPais = {
-  Mexico: 'mx',
-  'South Africa': 'za',
-  'South Korea': 'kr',
-  'Czech Republic': 'cz',
-  Canada: 'ca',
-  Argentina: 'ar',
-  Brazil: 'br',
-  Uruguay: 'uy',
-  Paraguay: 'py',
-  Colombia: 'co',
-  Ecuador: 'ec',
-  Chile: 'cl',
-  Peru: 'pe',
-  Bolivia: 'bo',
-  Venezuela: 've',
-  USA: 'us',
-  'United States': 'us',
-  Germany: 'de',
-  France: 'fr',
-  Spain: 'es',
-  Portugal: 'pt',
-  England: 'gb-eng',
-  Italy: 'it',
-  Netherlands: 'nl',
-  Belgium: 'be',
-  Croatia: 'hr',
-  Denmark: 'dk',
-  Switzerland: 'ch',
-  Austria: 'at',
-  Poland: 'pl',
-  Serbia: 'rs',
-  Morocco: 'ma',
-  Senegal: 'sn',
-  Tunisia: 'tn',
-  Egypt: 'eg',
-  Ghana: 'gh',
-  Nigeria: 'ng',
-  Cameroon: 'cm',
-  Japan: 'jp',
-  Australia: 'au',
-  Iran: 'ir',
-  'Saudi Arabia': 'sa',
-  Qatar: 'qa'
-}
-
-//función para obtener la URL de la bandera de un equipo, 
-// recibe el nombre del equipo por parámetro 
-// extrae el código del país del objeto codigosPais y construye la URL de la bandera usando ese código
-
-function obtenerBanderaUrl(equipo) {
-  const codigo = codigosPais[equipo]
-  // si no se encuentra el código, devuelve una URL de bandera genérica
-  if (!codigo) {
-    return 'https://flagcdn.com/w40/un.png'
-  }
-  // si se encuentra el código, devuelve la URL de la bandera específica
-  return `https://flagcdn.com/w40/${codigo}.png`
-}
 // Carga los partidos al montar el componente, maneja errores y actualiza el estado de carga
 // onMounted: cuando vue monte Grupos.vue, ejecuta esta función asíncrona para obtener los partidos
 
@@ -92,7 +36,7 @@ onMounted(async () => {
   } catch (e) {
     error.value = 'No se pudieron cargar los grupos.'
     // finalmente, independientemente del resultado, establece cargando en false para indicar que la carga ha terminado
-    // en la linea 15 se inicializa cargando como true, lo que indica que los datos están siendo cargados.
+    // en la linea 21 se inicializa cargando como true, lo que indica que los datos están siendo cargados.
   } finally {
     cargando.value = false
   }
