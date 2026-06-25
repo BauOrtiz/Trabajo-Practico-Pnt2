@@ -1,14 +1,43 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
+import { useAuthStore } from '../stores/storeAuth'
 import { obtenerPartidos } from '../services/partidosService'
 import { obtenerBanderaUrl } from '../utils/banderas.js'
 import { obtenerEstadoPartido } from '../utils/estadoPartido.js'
+
+const authStore = useAuthStore()
 
 const partidos = ref([])
 const predicciones = ref([])
 const grupoSeleccionado = ref('A')
 const cargando = ref(true)
 const error = ref('')
+
+// ─── RANKING AMIGOS ──────────────────────────────────────────────────────────
+const usuarios = ref([])
+const cargandoAmigos = ref(true)
+const API_USUARIOS = 'https://6a2b1b9ab687a7d5cbc4de36.mockapi.io/prode/Usuarios'
+
+const usuariosOrdenados = computed(() => {
+  return [...usuarios.value].sort((a, b) => (b.puntosTotales || 0) - (a.puntosTotales || 0))
+})
+
+function esUsuarioActual(usuario) {
+  return authStore.user && authStore.user.id === usuario.id
+}
+
+function iniciales(nombre) {
+  if (!nombre) return '?'
+  return nombre.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+}
+
+function medallaColor(pos) {
+  if (pos === 0) return '#f0b429'
+  if (pos === 1) return '#aaaaaa'
+  if (pos === 2) return '#cd7f32'
+  return '#555'
+}
+// ─────────────────────────────────────────────────────────────────────────────
 
 // Esta funcion agrega un id a cada partido si la API no lo trae.
 function normalizarPartidos(partidosData) {
@@ -24,7 +53,7 @@ function cargarPredicciones() {
   predicciones.value = prediccionesGuardadas ? JSON.parse(prediccionesGuardadas) : []
 }
 
-// Esta funcion calcula los grupos disponibles.
+// Esta funcion calcula los grupos disponibles
 const grupos = computed(() => {
   const gruposUnicos = partidos.value
     .map((partido) => partido.grupoId)
@@ -33,12 +62,12 @@ const grupos = computed(() => {
   return [...new Set(gruposUnicos)].sort()
 })
 
-// Esta funcion filtra los partidos del grupo seleccionado.
+// Esta funcion filtra los partidos del grupo seleccionado
 const partidosDelGrupo = computed(() => {
   return partidos.value.filter((partido) => partido.grupoId === grupoSeleccionado.value)
 })
 
-// Esta funcion ordena las predicciones por id de partido.
+// Esta funcion ordena las predicciones por id de partido
 const prediccionesPorPartido = computed(() => {
   return new Map(
     predicciones.value.map((prediccion) => [
@@ -48,7 +77,7 @@ const prediccionesPorPartido = computed(() => {
   )
 })
 
-// Esta funcion crea una fila inicial para un equipo.
+// Esta funcion crea una fila inicial para un equipo
 function crearFila(equipo) {
   return {
     equipo,
@@ -63,7 +92,7 @@ function crearFila(equipo) {
   }
 }
 
-// Esta funcion suma un resultado a la tabla de posiciones.
+// Esta funcion suma un resultado a la tabla de posiciones
 function sumarPartido(tabla, equipoLocal, equipoVisitante, golesLocal, golesVisitante) {
   if (!tabla.has(equipoLocal)) tabla.set(equipoLocal, crearFila(equipoLocal))
   if (!tabla.has(equipoVisitante)) tabla.set(equipoVisitante, crearFila(equipoVisitante))
@@ -97,7 +126,7 @@ function sumarPartido(tabla, equipoLocal, equipoVisitante, golesLocal, golesVisi
   visitante.diferencia = visitante.golesFavor - visitante.golesContra
 }
 
-// Esta funcion ordena la tabla por puntos y diferencia de gol.
+// Esta funcion ordena la tabla por puntos y diferencia de gol
 function ordenarTabla(tabla) {
   return [...tabla.values()].sort((a, b) => {
     if (b.puntos !== a.puntos) return b.puntos - a.puntos
@@ -107,7 +136,7 @@ function ordenarTabla(tabla) {
   })
 }
 
-// Esta funcion crea la tabla base con todos los equipos del grupo.
+// Esta funcion crea la tabla base con todos los equipos del grupo
 function crearTablaBase() {
   const tabla = new Map()
 
@@ -119,7 +148,7 @@ function crearTablaBase() {
   return tabla
 }
 
-// Esta funcion calcula el ranking con resultados reales.
+// Esta funcion calcula el ranking con resultados reales
 const rankingReal = computed(() => {
   const tabla = crearTablaBase()
 
@@ -138,7 +167,7 @@ const rankingReal = computed(() => {
   return ordenarTabla(tabla)
 })
 
-// Esta funcion calcula el ranking con las predicciones del usuario.
+// Esta funcion calcula el ranking con las predicciones del usuario
 const rankingApostado = computed(() => {
   const tabla = crearTablaBase()
 
@@ -158,15 +187,26 @@ const rankingApostado = computed(() => {
   return ordenarTabla(tabla)
 })
 
-// Esta funcion carga los datos al entrar a la pagina.
+// Esta funcion carga los datos al entrar a la pagina
 onMounted(async () => {
   try {
     cargarPredicciones()
-    partidos.value = normalizarPartidos(await obtenerPartidos())
+    partidos.value = await obtenerPartidos()
   } catch (e) {
     error.value = 'No se pudo cargar el ranking.'
   } finally {
     cargando.value = false
+  }
+
+  // Cargamos usuarios para el ranking de amigos
+  try {
+    const res = await fetch(API_USUARIOS)
+    const data = await res.json()
+    usuarios.value = Array.isArray(data) ? data : []
+  } catch (e) {
+    console.error('No se pudieron cargar los amigos')
+  } finally {
+    cargandoAmigos.value = false
   }
 })
 </script>
@@ -272,6 +312,36 @@ onMounted(async () => {
         </table>
       </article>
     </section>
+
+    <!-- ── RANKING AMIGOS ── -->
+    <section class="ranking-amigos">
+      <h2 class="amigos-titulo">Ranking de amigos</h2>
+
+      <div v-if="cargandoAmigos" class="mensaje">Cargando amigos...</div>
+
+      <div v-else-if="usuariosOrdenados.length === 0" class="mensaje">
+        No hay usuarios registrados todavía.
+      </div>
+
+      <template v-else>
+        <div
+          v-for="(usuario, idx) in usuariosOrdenados"
+          :key="usuario.id"
+          :class="['amigo-card', esUsuarioActual(usuario) ? 'amigo-card--propio' : '']"
+        >
+          <span class="amigo-pos" :style="{ color: medallaColor(idx) }">{{ idx + 1 }}</span>
+          <div class="amigo-avatar">{{ iniciales(usuario.nombre) }}</div>
+          <div class="amigo-info">
+            <span class="amigo-nombre">
+              {{ usuario.nombre }}
+              <span v-if="esUsuarioActual(usuario)" class="vos-tag">vos</span>
+            </span>
+            <span class="amigo-pts">{{ usuario.puntosTotales || 0 }} puntos</span>
+          </div>
+        </div>
+      </template>
+    </section>
+
   </main>
 </template>
 
@@ -425,5 +495,81 @@ tr:last-child td {
   .tabla-card {
     overflow-x: auto;
   }
+}
+
+/* ── Ranking amigos ── */
+.ranking-amigos {
+  margin-top: 2.5rem;
+}
+
+.amigos-titulo {
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: #fff;
+  margin-bottom: 1rem;
+}
+
+.amigo-card {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  background-color: #fff;
+  border-radius: 50px;
+  padding: 0.6rem 1.2rem;
+  margin-bottom: 0.5rem;
+  color: #111;
+}
+
+.amigo-card--propio {
+  background-color: #fef3d0;
+}
+
+.amigo-pos {
+  font-size: 1rem;
+  font-weight: bold;
+  min-width: 20px;
+  text-align: center;
+}
+
+.amigo-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background-color: #1a2340;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  font-weight: bold;
+  color: #f0b429;
+  flex-shrink: 0;
+}
+
+.amigo-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.amigo-nombre {
+  font-weight: 600;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.amigo-pts {
+  font-size: 0.78rem;
+  color: #666;
+}
+
+.vos-tag {
+  font-size: 0.7rem;
+  background-color: #f0b429;
+  color: #050914;
+  border-radius: 50px;
+  padding: 1px 8px;
+  font-weight: bold;
 }
 </style>

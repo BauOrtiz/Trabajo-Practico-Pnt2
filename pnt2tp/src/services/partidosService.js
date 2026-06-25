@@ -1,8 +1,8 @@
 const API_URL = 'https://www.mockachino.com/603fe2b3-50c8-44/partidos'
 
-function normalizarPartido(partido) {
+function normalizarPartido(partido, index) {
   return {
-    id: partido.id,
+    id: partido.id || `${partido.localId}-${partido.visitanteId}-${index}`, //si la api no trae id, se arma uno
     grupoId: partido.grupo,
     equipoLocal: partido.localId,
     equipoVisitante: partido.visitanteId,
@@ -29,7 +29,7 @@ export async function obtenerPartidos() {
 }
 
 
-//Link espacio crear mochachinos: https://www.mockachino.com/spaces/603fe2b3-50c8-44
+//Link espacio crear mockachinos: https://www.mockachino.com/spaces/603fe2b3-50c8-44
 const API_PARTIDOS = API_URL
 
 export async function obtenerPartidos2() {
