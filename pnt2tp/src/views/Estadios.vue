@@ -33,100 +33,142 @@
 </script>
 
 <template>
-    <h1>hola</h1>
+  <h1 class="titulo-estadios">Estadios</h1>
 
+  <section class="estadios-container">
     <article
-    v-for="estadio in estadios"
-    @click="detalleEstadio(estadio.id)">
-    <div class="estadio-card">
-    <div class="card-image">
-      <img :src="estadio.imagen" :alt="estadio.nombre" loading="lazy" />
-      <span class="badge-pais">{{ estadio.pais }}</span>
-    </div>
+      v-for="estadio in estadios"
+      :key="estadio.id"
+      class="estadio-card"
+      @click="detalleEstadio(estadio.id)"
+    >
+      <div class="card-image-container">
+        <img :src="estadio.imagen" :alt="estadio.nombre" loading="lazy" />
+        <span class="badge-pais">{{ estadio.pais }}</span>
+      </div>
 
-    <div class="card-content">
-      <h3>{{ estadio.nombre }}</h3>
-      <p class="info-location">
-        📍 <strong>Ciudad:</strong> {{ estadio.ciudad }}
-      </p>
-      <p class="info-capacity">
-        🏟️ <strong>Capacidad:</strong> {{ estadio.capacidad }} espectadores
-      </p>
-    </div>
-  </div>
-       <p></p>
+      <div class="card-content-container">
+        <h3>{{ estadio.nombre }}</h3>
+
+        <p class="info-location">
+          📍 <strong>Ciudad:</strong> {{ estadio.ciudad }}
+        </p>
+
+        <p class="info-capacity">
+          🏟️ <strong>Capacidad:</strong> {{ estadio.capacidad }} espectadores
+        </p>
+      </div>
     </article>
-
+  </section>
 </template>
 
+
+
 <style scoped>
-    .estadio-card {
-    background: #0d131f;
-    border-radius: 12px;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
-    overflow: hidden;
-    transition: transform 0.3s ease;
-    
-    /* EL TRUCO: Activamos flex para que los hijos se pongan uno al lado del otro */
-    display: flex; 
-    flex-direction: row; 
-    height: 160px; /* Le fijamos una altura a la tarjeta para que quede simétrica */
-    }
+.titulo-estadios {
+  text-align: center;
+  margin: 24px 0;
+  font-size: 32px;
+  color: #e5e7eb;
+}
 
-    .estadio-card:hover {
-    transform: translateY(-3px);
-    }
+.estadios-container {
+  width: 90%;
+  max-width: 850px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
 
-    .card-image-container {
-    position: relative;
-    width: 40%;        /* Se queda clavado en el 40% del ancho de la tarjeta */
-    height: 100%;      /* Ocupa el 100% de la altura de la tarjeta (los 160px) */
-    overflow: hidden;  /* Si algo de la foto se pasa, se corta y no deforma la tarjeta */
-    flex-shrink: 0;    /* OBLIGATORIO: Evita que el texto de la derecha empuje la imagen y la achique */
-    }
+.estadio-card {
+  background: #0d131f;
+  border-radius: 12px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+  transition: transform 0.3s ease;
+  display: flex;
+  flex-direction: row;
+  height: 130px;
+  cursor: pointer;
+}
 
-    /* 2. La imagen se adapta de forma inteligente a ese contenedor */
-    .card-image-container img {
-    width: 100%;       /* Se estira a lo ancho para cubrir todo el contenedor */
-    height: 100%;      /* Se estira a lo alto para cubrir todo el contenedor */
-    
-    /* EL SALVAVIDAS: Corta la foto como si fuera un cuadro. 
-        La centra y la recorta por los costados sin estirarla ni pixelarla */
-    object-fit: cover; 
-    object-position: center; /* Se asegura de enfocar el medio de la foto */
-    }
+.estadio-card:hover {
+  transform: translateY(-3px);
+}
 
-    .badge-pais {
-    position: absolute;
-    top: 8px;
-    left: 8px; /* Lo pasé a la izquierda para que no tape el centro */
-    background: rgba(0, 0, 0, 0.75);
-    color: #fff;
-    padding: 3px 8px;
-    border-radius: 12px;
-    font-size: 0.75rem;
-    font-weight: bold;
-    }
+.card-image-container {
+  position: relative;
+  width: 230px;
+  height: 130px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
 
-    /* Configuración de la Columna Derecha (Datos) */
-    .card-content-container {
-    width: 60%; /* Ocupa el 60% restante */
-    padding: 16px;
-    display: flex;
-    flex-direction: column;
-    justify-content: center; /* Centra los textos verticalmente */
-    text-align: left;
-    }
+.card-image-container img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+}
 
-    .card-content-container h3 {
-    margin: 0 0 8px 0;
-    font-size: 1.2rem;
-    color: #2c3e50;
-    }
+.badge-pais {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  background: rgba(0, 0, 0, 0.75);
+  color: #fff;
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: bold;
+}
 
-    .info-body p {
-    margin: 4px 0;
-    color: #555;
-    font-size: 0.9rem;
-    }
+.card-content-container {
+  flex: 1;
+  padding: 14px 18px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  text-align: left;
+}
+
+.card-content-container h3 {
+  margin: 0 0 8px 0;
+  font-size: 18px;
+  color: #cbd5e1;
+}
+
+.card-content-container p {
+  margin: 4px 0;
+  color: #d1d5db;
+  font-size: 14px;
+}
+
+@media (max-width: 700px) {
+  .estadios-container {
+    width: 95%;
+  }
+
+  .estadio-card {
+    height: 120px;
+  }
+
+  .card-image-container {
+    width: 180px;
+    height: 120px;
+  }
+
+  .card-content-container {
+    padding: 10px 12px;
+  }
+
+  .card-content-container h3 {
+    font-size: 16px;
+  }
+
+  .card-content-container p {
+    font-size: 13px;
+  }
+}
 </style>
