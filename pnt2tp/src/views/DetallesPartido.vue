@@ -2,6 +2,10 @@
 import { ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { obtenerPartidos } from '../services/partidosService'
+import {
+  guardarPrediccion,
+  obtenerPredicciones
+} from '../services/prediccionesService'
 import { obtenerEstadoPartido } from '../utils/estadoPartido.js'
 
 const route = useRoute()
@@ -38,8 +42,17 @@ onMounted(async () => {
 
         if (partido.value) {
             error.value = ''
+
+            const prediccionGuardada = obtenerPredicciones().find(
+              (item) => String(item.partidoId) === String(partido.value.id)
+            )
+
+            if (prediccionGuardada) {
+              pronosticoLocal.value = prediccionGuardada.golesLocal
+              pronosticoVisitante.value = prediccionGuardada.golesVisitante
+            }
             } else {
-            error.value = "No se encontró el país en la base de datos."
+            error.value = "No se encontró el partido en la base de datos."
           }
 
   } catch (error) {
@@ -51,12 +64,28 @@ onMounted(async () => {
 
 // Función para procesar el prode
 const guardarPronostico = () => {
-  if (pronosticoLocal.value !== null && pronosticoVisitante.value !== null) {
-    alert(`Pronóstico guardado: ${partido.value.equipoLocal} ${pronosticoLocal.value} - ${pronosticoVisitante.value} ${partido.value.equipoVisitante}`)
-    // Acá meterías el envío a tu base de datos o localStarage
-  } else {
+  if (pronosticoLocal.value === null || pronosticoVisitante.value === null) {
     alert('Por favor completa ambos resultados antes de guardar.')
+    return
   }
+
+  if (pronosticoLocal.value < 0 || pronosticoVisitante.value < 0) {
+    alert('Los goles no pueden ser negativos.')
+    return
+  }
+
+  if (obtenerEstadoPartido(partido.value) !== 'programado') {
+    alert('No se puede predecir un partido ya iniciado o finalizado.')
+    return
+  }
+
+  guardarPrediccion({
+    partidoId: partido.value.id,
+    golesLocal: pronosticoLocal.value,
+    golesVisitante: pronosticoVisitante.value
+  })
+
+  alert(`Pronóstico guardado: ${partido.value.equipoLocal} ${pronosticoLocal.value} - ${pronosticoVisitante.value} ${partido.value.equipoVisitante}`)
 }
 </script>
 

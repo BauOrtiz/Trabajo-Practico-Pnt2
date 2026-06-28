@@ -1,26 +1,30 @@
 function obtenerDuracionPartidoMs() {
-  const horas = 2
-  const minutosPorHora = 60
+  const minutos = 2
   const segundosPorMinuto = 60
   const milisegundosPorSegundo = 1000
-  const duracionPartidoMs = horas * minutosPorHora * segundosPorMinuto * milisegundosPorSegundo
+  const duracionPartidoMs = minutos * segundosPorMinuto * milisegundosPorSegundo
 
   return duracionPartidoMs
 }
 
-// Esta funcion calcula el estado del partido segun su horario
+// Respeta los estados programado y finalizado informados por la API.
+// Solo calcula el fin automatico de los partidos que estan en vivo.
 export function obtenerEstadoPartido(partido, ahora = new Date()) {
-  const estadoApi = partido.estado?.toLowerCase()
+  const estadoApi = partido?.estado?.toLowerCase() ?? 'programado'
 
   if (estadoApi === 'finalizado') {
     return 'finalizado'
+  }
+
+  if (estadoApi !== 'en vivo') {
+    return estadoApi
   }
 
   const fechaPartido = partido.fechaHora || partido.fecha
   const inicio = new Date(fechaPartido)
 
   if (Number.isNaN(inicio.getTime())) {
-    return partido.estado || 'programado'
+    return 'en vivo'
   }
 
   const finalizacion = new Date(inicio.getTime() + obtenerDuracionPartidoMs())
@@ -29,9 +33,5 @@ export function obtenerEstadoPartido(partido, ahora = new Date()) {
     return 'finalizado'
   }
 
-  if (ahora >= inicio) {
-    return 'en vivo'
-  }
-
-  return 'programado'
+  return 'en vivo'
 }

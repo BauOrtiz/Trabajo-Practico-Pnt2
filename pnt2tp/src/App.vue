@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import Login from './views/Login.vue'
 import { useAuthStore } from './stores/storeAuth'
 import { obtenerPartidos } from './services/partidosService'
+import { obtenerPredicciones } from './services/prediccionesService'
 import { calcularPuntosProde } from './utils/puntuacionProde'
 
 const authStore = useAuthStore()
@@ -68,8 +69,7 @@ function navegarDesdeMenu(ruta) {
 
 
 function cargarPredicciones() {
-  const prediccionesGuardadas = localStorage.getItem('predicciones')
-  predicciones.value = prediccionesGuardadas ? JSON.parse(prediccionesGuardadas) : []
+  predicciones.value = obtenerPredicciones()
 }
 
 // Trae los partidos desde la API para poder calcular puntos reales del Prode.

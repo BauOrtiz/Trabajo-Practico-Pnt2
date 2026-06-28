@@ -8,6 +8,7 @@ import { computed, onMounted, ref } from 'vue'
 // importo la función obtenerBanderaUrl desde el archivo de utilidades banderas.js
 
 import { obtenerPartidos } from '../services/partidosService'
+import { calcularGrupos } from '../services/grupoService'
 import { obtenerBanderaUrl } from '../utils/banderas.js'
 
 // declaro variables reactivas para manejar el estado de los partidos, la carga y los errores
@@ -42,128 +43,7 @@ onMounted(async () => {
   }
 })
 
-// función para crear un objeto del equipo recibido por parámetros con las estadísticas iniciales
-
-function crearEquipo(nombre) {
-  return {
-    nombre,
-    jugados: 0,
-    ganados: 0,
-    empatados: 0,
-    perdidos: 0,
-    golesFavor: 0,
-    golesContra: 0,
-    diferenciaGol: 0,
-    puntos: 0
-  }
-}
-
-// computed es una función de Vue que sirve para crear un valor calculado que se actualiza automáticamente cuando cambian otras variables reactivas.
-// en este caso, grupos es un valor calculado que se basa en los partidos obtenidos
-
-const grupos = computed(() => {
-
-  // creo un objeto vacío para almacenar los grupos y sus equipos
-  const gruposMap = {}
-
-  // recorro cada partido para llenar el objeto gruposMap con la información de los equipos y sus estadísticas.
-  partidos.value.forEach((partido) => {
-    // obtengo el ID del grupo del partido, si no tiene grupo asignado, lo etiqueto como 'Sin grupo'
-    const grupoId = partido.grupoId || 'Sin grupo'
-
-    // si el grupo no existe en gruposMap, lo creo como un objeto vacío
-    if (!gruposMap[grupoId]) {
-      gruposMap[grupoId] = {}
-    }
-
-    // para cada equipo (local y visitante) del partido, verifico si ya existe en el grupo correspondiente en gruposMap
-    // si no existe, lo creo usando la función crearEquipo y lo asigno al grupo
-    if (!gruposMap[grupoId][partido.equipoLocal]) {
-      gruposMap[grupoId][partido.equipoLocal] = crearEquipo(partido.equipoLocal)
-    }
-
-    // hago lo mismo para el equipo visitante
-
-    if (!gruposMap[grupoId][partido.equipoVisitante]) {
-      gruposMap[grupoId][partido.equipoVisitante] = crearEquipo(partido.equipoVisitante)
-    }
-
-    // si el partido ha finalizado, actualizo las estadísticas de ambos equipos en el grupo correspondiente en gruposMap
-
-    if (partido.estado === 'finalizado') {
-      const local = gruposMap[grupoId][partido.equipoLocal]
-      const visitante = gruposMap[grupoId][partido.equipoVisitante]
-
-      const golesLocal = Number(partido.golesLocal)
-      const golesVisitante = Number(partido.golesVisitante)
-
-      local.jugados++
-      visitante.jugados++
-
-      local.golesFavor += golesLocal
-      local.golesContra += golesVisitante
-
-      visitante.golesFavor += golesVisitante
-      visitante.golesContra += golesLocal
-
-      // determino el resultado del partido para actualizar las estadísticas de ganados, empatados, perdidos y puntos de cada equipo
-
-      if (golesLocal > golesVisitante) {
-        local.ganados++
-        visitante.perdidos++
-        local.puntos += 3
-      } else if (golesLocal < golesVisitante) {
-        visitante.ganados++
-        local.perdidos++
-        visitante.puntos += 3
-      } else {
-        local.empatados++
-        visitante.empatados++
-        local.puntos += 1
-        visitante.puntos += 1
-      }
-
-      // calculo la diferencia de goles para cada equipo como goles a favor menos goles en contra
-
-      local.diferenciaGol = local.golesFavor - local.golesContra
-      visitante.diferenciaGol = visitante.golesFavor - visitante.golesContra
-    }
-  })
-
-    // convierto el objeto gruposMap en un array de grupos,
-    //  donde cada grupo tiene su ID y una tabla de equipos ordenada según los criterios de puntos, diferencia de goles, goles a favor y nombre
-   
-    // .entries convierte el objeto que recibe por parámetro en un array de pares [clave, valor], en este caso [grupoId, equipos]
-   
-  return Object.entries(gruposMap)
-   // .map recorre cada par del array y devuelve un nuevo array con objetos que representan cada grupo, con su ID y su tabla de equipos ordenada
-    .map(([grupoId, equipos]) => {
-
-      // ordeno los equipos del grupo según los criterios de puntos, diferencia de goles, goles a favor y nombre
-      // sort ordena el array de equipos comparando dos equipos a la vez (a y b) y devolviendo un valor negativo, cero o positivo según el orden deseado
-      const tabla = Object.values(equipos).sort((a, b) => {
-        if (b.puntos !== a.puntos) {
-          return b.puntos - a.puntos
-        }
-
-        if (b.diferenciaGol !== a.diferenciaGol) {
-          return b.diferenciaGol - a.diferenciaGol
-        }
-
-        if (b.golesFavor !== a.golesFavor) {
-          return b.golesFavor - a.golesFavor
-        }
-
-        return a.nombre.localeCompare(b.nombre)
-      })
-
-      return {
-        grupoId,
-        tabla
-      }
-    })
-    .sort((a, b) => String(a.grupoId).localeCompare(String(b.grupoId)))
-})
+const grupos = computed(() => calcularGrupos(partidos.value))
 </script>
 
 // en el próximo template defino que se va a mostrar en la página de grupos
