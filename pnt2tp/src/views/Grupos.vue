@@ -9,6 +9,7 @@ import { computed, onMounted, ref } from 'vue'
 
 import { obtenerPartidos } from '../services/partidosService'
 import { obtenerBanderaUrl } from '../utils/banderas.js'
+import { obtenerEstadoPartido } from '../utils/estadoPartido.js'
 
 // declaro variables reactivas para manejar el estado de los partidos, la carga y los errores
 // la variable reactiva hace que vue actualice automáticamente la vista cuando cambian sus valores, 
@@ -90,7 +91,7 @@ const grupos = computed(() => {
 
     // si el partido ha finalizado, actualizo las estadísticas de ambos equipos en el grupo correspondiente en gruposMap
 
-    if (partido.estado === 'finalizado') {
+    if (obtenerEstadoPartido(partido) === 'finalizado') {
       const local = gruposMap[grupoId][partido.equipoLocal]
       const visitante = gruposMap[grupoId][partido.equipoVisitante]
 
