@@ -6,8 +6,10 @@ import { useAuthStore } from './stores/storeAuth'
 import { obtenerPartidos } from './services/partidosService'
 import { obtenerPredicciones } from './services/prediccionesService'
 import { calcularPuntosProde } from './utils/puntuacionProde'
+import { useEstaticoStore } from './stores/storeEstaticos'
 
 const authStore = useAuthStore()
+const storeEstaticos = useEstaticoStore()
 const router = useRouter()
 const mostrarLogin = ref(false)
 const mostrarMenu = ref(false)
@@ -96,7 +98,7 @@ watch(
 // Carga datos iniciales cuando se monta la app.
 onMounted(async () => {
   cargarPredicciones()
-  await cargarPartidos()
+  storeEstaticos.cargarDatosMundial()  
 })
 </script>
 

@@ -1,31 +1,35 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { obtenerEstadios } from '../services/partidosService'
+import { useEstaticoStore } from '../stores/storeEstaticos'
 
 const route = useRoute()
 const router = useRouter()
 
-const estadioId = route.params.id
-const estadio = ref(null)
-const error = ref('')
+const estaticoStore = useEstaticoStore()
+const estadioId = computed(() => route.params.id)
 
 onMounted(async () => {
-  try {
-    const respuesta = await obtenerEstadios()
-    const estadios = respuesta.estadios ?? []
+estaticoStore.cargarDatosMundial()
+})
 
-    const estadioEncontrado = estadios.find(e => e.id === estadioId)
-
-    if (estadioEncontrado) {
-      estadio.value = estadioEncontrado
-    } else {
-      error.value = 'No se encontró el estadio en la base de datos.'
-    }
-  } catch (e) {
-    console.error(e)
-    error.value = 'No se pudo cargar el detalle del estadio.'
+// 2. COMPUTED: Busca en tiempo real. Si Pinia se actualiza, esto se actualiza solo
+ const estadio =   computed(() => {
+  // Si el array de estadios todavía no existe o está vacío, devolvemos null temporalmente
+  if (!estaticoStore.estadios || estaticoStore.estadios.length === 0) {
+    return null
   }
+  // Buscamos el estadio de forma segura
+  return estaticoStore.estadios.find(e => e.id === estadioId.value)
+})
+
+
+// 3. ERROR COMPUTADO: Si ya se cargaron los datos globales pero el ID no existe en la lista
+ const error = computed(() => {
+  if (estaticoStore.cargado && !estadio.value) {
+    return 'No se encontró el estadio en la base de datos.'
+  }
+  return estaticoStore.error ? 'No se pudo cargar el detalle del estadio.' : ''
 })
 
 function volverAEstadios() {
