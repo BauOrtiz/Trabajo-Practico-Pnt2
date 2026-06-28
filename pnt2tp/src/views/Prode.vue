@@ -2,6 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 
 import { obtenerPartidos } from '../services/partidosService'
+import {guardarPredicciones, obtenerPredicciones } from '../services/prediccionesService'
 import { obtenerEstadoPartido } from '../utils/estadoPartido.js'
 
 const partidos = ref([])
@@ -32,16 +33,8 @@ function obtenerPartidoPorId(partidoId) {
   return partidos.value.find((partido) => String(partido.id) === String(partidoId))
 }
 
-function guardarEnLocalStorage() {
-  localStorage.setItem('predicciones', JSON.stringify(predicciones.value))
-}
-
 function cargarDesdeLocalStorage() {
-  const prediccionesGuardadas = localStorage.getItem('predicciones')
-
-  if (prediccionesGuardadas) {
-    predicciones.value = JSON.parse(prediccionesGuardadas)
-  }
+  predicciones.value = obtenerPredicciones()
 }
 
 function limpiarFormulario() {
@@ -107,7 +100,7 @@ function guardarPrediccion() {
     mensaje.value = 'Predicción guardada correctamente.'
   }
 
-  guardarEnLocalStorage()
+  guardarPredicciones(predicciones.value)
   limpiarFormulario()
 }
 
@@ -137,7 +130,7 @@ function eliminarPrediccion(prediccion) {
   }
 
   predicciones.value = predicciones.value.filter((item) => item.id !== prediccion.id)
-  guardarEnLocalStorage()
+  guardarPredicciones(predicciones.value)
   mensaje.value = 'Predicción eliminada correctamente.'
 }
 
@@ -172,7 +165,7 @@ onMounted(async () => {
           :key="partido.id"
           :value="partido.id"
         >
-          {{ partido.local }} vs {{ partido.visitante }} -
+          {{ partido.equipoLocal }} vs {{ partido.equipoVisitante }} -
           {{ formatearFecha(partido.fecha) }}
         </option>
       </select>

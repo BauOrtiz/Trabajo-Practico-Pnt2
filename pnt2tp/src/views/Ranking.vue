@@ -2,6 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { useAuthStore } from '../stores/storeAuth'
 import { obtenerPartidos } from '../services/partidosService'
+import { obtenerPredicciones } from '../services/prediccionesService'
 import { obtenerBanderaUrl } from '../utils/banderas.js'
 import { obtenerEstadoPartido } from '../utils/estadoPartido.js'
 
@@ -39,10 +40,9 @@ function medallaColor(pos) {
 }
 // ─────────────────────────────────────────────────────────────────────────────
 
-// Esta funcion carga las predicciones guardadas en localStorage.
+// Esta funcion carga las predicciones
 function cargarPredicciones() {
-  const prediccionesGuardadas = localStorage.getItem('predicciones')
-  predicciones.value = prediccionesGuardadas ? JSON.parse(prediccionesGuardadas) : []
+  predicciones.value = obtenerPredicciones()
 }
 
 // Esta funcion calcula los grupos disponibles
