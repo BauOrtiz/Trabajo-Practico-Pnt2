@@ -16,7 +16,10 @@ function normalizarPartido(partido, index) {
 }
 
 export async function obtenerPartidos() {
-  const respuesta = await fetch(API_URL)
+  const respuesta = await fetch(API_URL,{
+    method: 'GET',
+    headers: { 'Accept': 'application/json' }
+  })
 
   if (!respuesta.ok) {
     throw new Error('No se pudieron obtener los partidos')
@@ -31,7 +34,10 @@ export async function obtenerPartidos() {
 const API_SELECCIONES = 'https://www.mockachino.com/603fe2b3-50c8-44/selecciones'
 
 export async function obtenerSelecciones() {
-  const respuesta = await fetch(API_SELECCIONES)
+  const respuesta = await fetch(API_SELECCIONES,{
+    method: 'GET',
+    headers: { 'Accept': 'application/json' }
+  })
 
   if (!respuesta.ok) {
     throw new Error('No se pudieron obtener las selecciones')
@@ -45,7 +51,10 @@ export async function obtenerSelecciones() {
 const API_ESTADIOS = 'https://www.mockachino.com/603fe2b3-50c8-44/estadios'
 
 export async function obtenerEstadios() {
-  const respuesta = await fetch(API_ESTADIOS)
+  const respuesta = await fetch(API_ESTADIOS,{
+    method: 'GET',
+    headers: { 'Accept': 'application/json' }
+  })
 
   if (!respuesta.ok) {
     throw new Error('No se pudieron obtener los Estadios')
