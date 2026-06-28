@@ -1,5 +1,5 @@
 import { computed, onMounted, ref } from 'vue'
-import { obtenerPartidos2 } from '../services/partidosService'
+import { obtenerPartidos } from '../services/partidosService'
 
 export function useProximosPartidos() {
   const partidos = ref([])
@@ -12,19 +12,19 @@ export function useProximosPartidos() {
     enUnaSemana.setDate(hoy.getDate() + 7)
 
     const estaEnLaSemana = (p) => {
-      const fecha = new Date(p.fechaHora)
+      const fecha = new Date(p.fecha)
       return fecha >= hoy && fecha <= enUnaSemana
     }
 
     return partidos.value
       .filter(estaEnLaSemana)
-      .sort((a, b) => new Date(a.fechaHora) - new Date(b.fechaHora))
+      .sort((a, b) => new Date(a.fecha) - new Date(b.fecha))
   })
 
   const partidosPorDia = computed(() => {
     const grupos = {}
     for (const partido of proximosPartidos.value) {
-      const dia = new Date(partido.fechaHora).toLocaleDateString('es-AR', {
+      const dia = new Date(partido.fecha).toLocaleDateString('es-AR', {
         day: 'numeric',
         month: 'long'
       })
@@ -43,8 +43,7 @@ export function useProximosPartidos() {
 
   onMounted(async () => {
     try {
-      const data = await obtenerPartidos2()
-      partidos.value = data.partidos ?? []
+      partidos.value = await obtenerPartidos()
     } catch (e) {
       error.value = 'No se pudieron cargar los próximos partidos.'
     } finally {

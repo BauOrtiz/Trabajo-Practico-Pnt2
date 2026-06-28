@@ -39,19 +39,19 @@ const { cargando, error, proximosPartidos, partidosPorDia, formatearHora } = use
           <article v-for="partido in partidosDia" :key="partido.id" class="card">
             <div class="hora">
               <span>🕐</span>
-              <span>{{ formatearHora(partido.fechaHora) }}</span>
+              <span>{{ formatearHora(partido.fecha) }}</span>
             </div>
 
             <div class="equipo local">
-              <img :src="obtenerBanderaUrl(partido.localId)" :alt="partido.localId" class="bandera-img" />
-              <span class="nombre">{{ partido.localId.toUpperCase() }}</span>
+              <img :src="obtenerBanderaUrl(partido.equipoLocal)" :alt="partido.equipoLocal" class="bandera-img" />
+              <span class="nombre">{{ partido.equipoLocal.toUpperCase() }}</span>
             </div>
 
             <div class="separador">-</div>
 
             <div class="equipo visitante">
-              <span class="nombre">{{ partido.visitanteId.toUpperCase() }}</span>
-              <img :src="obtenerBanderaUrl(partido.visitanteId)" :alt="partido.visitanteId" class="bandera-img" />
+              <span class="nombre">{{ partido.equipoVisitante.toUpperCase() }}</span>
+              <img :src="obtenerBanderaUrl(partido.equipoVisitante)" :alt="partido.equipoVisitante" class="bandera-img" />
             </div>
           </article>
         </div>

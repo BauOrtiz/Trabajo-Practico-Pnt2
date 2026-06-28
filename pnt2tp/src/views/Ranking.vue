@@ -39,14 +39,6 @@ function medallaColor(pos) {
 }
 // ─────────────────────────────────────────────────────────────────────────────
 
-// Esta funcion agrega un id a cada partido si la API no lo trae.
-function normalizarPartidos(partidosData) {
-  return partidosData.map((partido, index) => ({
-    ...partido,
-    id: partido.id || index + 1
-  }))
-}
-
 // Esta funcion carga las predicciones guardadas en localStorage.
 function cargarPredicciones() {
   const prediccionesGuardadas = localStorage.getItem('predicciones')

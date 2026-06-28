@@ -17,11 +17,7 @@ const prediccionEditandoId = ref(null)
 const mensaje = ref('')
 
 async function cargarPartidos() {
-  const partidosData = await obtenerPartidos()
-  partidos.value = partidosData.map((partido, index) => ({
-    ...partido,
-    id: partido.id || index + 1
-  }))
+  partidos.value = await obtenerPartidos()
 }
 
 const partidosDisponibles = computed(() => {
