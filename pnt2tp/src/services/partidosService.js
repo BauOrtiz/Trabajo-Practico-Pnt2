@@ -29,7 +29,7 @@ export async function obtenerPartidos() {
 }
 
 
-//Link espacio crear mochachinos: https://www.mockachino.com/spaces/603fe2b3-50c8-44
+//Link espacio crear mockachinos: https://www.mockachino.com/spaces/603fe2b3-50c8-44
 const API_PARTIDOS = API_URL
 
 export async function obtenerPartidos2() {
@@ -49,12 +49,12 @@ export async function obtenerSelecciones() {
   const respuesta = await fetch(API_SELECCIONES)
 
   if (!respuesta.ok) {
-    throw new Error('No se pudieron obtener las Selecciones')
+    throw new Error('No se pudieron obtener las selecciones')
   }
 
-    return await respuesta.json()
+  const data = await respuesta.json()
 
-
+  return data
 }
 
 const API_ESTADIOS = 'https://www.mockachino.com/603fe2b3-50c8-44/estadios'
