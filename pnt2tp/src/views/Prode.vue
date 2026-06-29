@@ -170,15 +170,16 @@ onMounted(async () => {
           No hay partidos disponibles para predecir.
         </div>
 
-        <option
-          v-for="partido in partidosDisponibles"
-          :key="partido.id"
-          :value="partido.id"
-        >
-          {{ partido.equipoLocal }} vs {{ partido.equipoVisitante }} -
-          {{ formatearFecha(partido.fecha) }}
-        </option>
-      </select>
+        <select v-model="prediccionForm.partidoId">
+          <option
+            v-for="partido in partidosDisponibles"
+            :key="partido.id"
+            :value="partido.id"
+          >
+            {{ partido.equipoLocal }} vs {{ partido.equipoVisitante }} -
+            {{ formatearFecha(partido.fecha) }}
+          </option>
+        </select>
 
         <div class="goles">
           <div>
