@@ -1,47 +1,43 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue'
-import { obtenerPartidos } from '../services/partidosService'
-import { obtenerEstadoPartido } from '../utils/estadoPartido.js'
+   import { ref, onMounted,computed } from 'vue'
+    import { useRouter } from 'vue-router'
+    import { useEstaticoStore } from '../stores/storeEstaticos'
 
-const partidos = ref([])
-const cargando = ref(true)
-const error = ref('')
-const grupoSeleccionado = ref('todos')
+    const router = useRouter()
+    const estaticoStore = useEstaticoStore()
+    const grupoSeleccionado = ref('todos')
 
-import { obtenerBanderaUrl } from '../utils/banderas.js'
 
-import { useRouter } from 'vue-router'
-const router = useRouter()
+    // Navega al detalle del partido seleccionado
+    function irAlDetalle(id) {
+      router.push(`/partido/${id}`)
+    }
+ 
 
-// Navega al detalle del partido seleccionado
-function irAlDetalle(id) {
-  router.push(`/partido/${id}`)
-}
+    onMounted(async () => {
+            estaticoStore.cargarDatosMundial()
+    }
 
-// Carga los partidos al iniciar la vista
-onMounted(async () => {
-  try {
-    partidos.value = await obtenerPartidos()
-  } catch (e) {
-    error.value = 'No se pudieron cargar los partidos.'
-  } finally {
-    cargando.value = false
-  }
-})
+
+
+)
 
 // Obtiene la lista de grupos disponibles para el filtro
 const grupos = computed(() => {
-  const gruposUnicos = partidos.value.map((partido) => partido.grupoId)
+  if (!estaticoStore.partidos || estaticoStore.partidos.length === 0) {
+    return []
+  }
+  const gruposUnicos = estaticoStore.partidos.map((partido) => partido.grupoId)
   return [...new Set(gruposUnicos)].sort()
 })
 
 // Devuelve los partidos segun el grupo seleccionado
 const partidosFiltrados = computed(() => {
   if (grupoSeleccionado.value === 'todos') {
-    return partidos.value
+    return estaticoStore.partidos
   }
 
-  return partidos.value.filter(
+  return estaticoStore.partidos.filter(
     (partido) => partido.grupoId === grupoSeleccionado.value,
   )
 })
@@ -55,24 +51,35 @@ function formatearFecha(fecha) {
     timeStyle: 'short',
   })
 }
-
-// Muestra el resultado si el partido finalizo, o "vs" si todavia no
+// 1. CORREGIDO: Ya no necesitamos "obtenerEstadoPartido" porque usamos el estado normalizado
 function mostrarResultado(partido) {
-  if (obtenerEstadoPartido(partido) !== 'finalizado') {
+  if (partido.estado !== 'finalizado') {
     return 'vs'
   }
-
   return `${partido.golesLocal} - ${partido.golesVisitante}`
 }
 
-// Obtiene el estado actual del partido
+// 2. CORREGIDO: Devolvemos directamente el estado que ya viene en el partido
 function mostrarEstado(partido) {
-  return obtenerEstadoPartido(partido)
+  return partido.estado || 'programado'
+}
+
+// 3. CORREGIDO: Buscamos la bandera usando el ID o el nombre de forma flexible
+function obtenerBanderaUrl(equipoId) {
+  if (!estaticoStore.selecciones || estaticoStore.selecciones.length === 0) return ''
+  
+  // Buscamos coincidencia tanto por el ID (ej: "ARG") como por el nombre por las dudas
+  const pais = estaticoStore.selecciones.find(
+    s => s.id === equipoId || s.nombre === equipoId
+  )
+  
+  return pais ? pais.bandera : ''
 }
 </script>
 
 <template>
   <main class="partidos-page">
+
     <section class="encabezado">
       <div>
         <h1>Partidos</h1>
@@ -87,12 +94,14 @@ function mostrarEstado(partido) {
       </select>
     </section>
 
-    <section v-if="cargando" class="mensaje">
+    <!-- Cambiá "cargando" por "estaticoStore.loading" -->
+    <section v-if="estaticoStore.loading" class="mensaje">
       Cargando partidos...
     </section>
 
-    <section v-else-if="error" class="mensaje error">
-      {{ error }}
+    <!-- Cambiá "error" por "estaticoStore.error" -->
+    <section v-else-if="estaticoStore.error" class="mensaje error">
+      {{ estaticoStore.error }}
     </section>
 
     <section v-else class="contenedor-partidos">

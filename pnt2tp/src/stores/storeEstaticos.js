@@ -33,7 +33,7 @@ export const useEstaticoStore = defineStore('estatico', {
 
 
         // 4. Parseamos los JSONs 
-        this.partidos =  resPartidos.partidos
+        this.partidos = resPartidos             // ✅ DIRECTO: Ya es el array mapeado =  resPartidos.partidos
         this.estadios =  resEstadios.estadios
         this.selecciones =  resSelecciones.selecciones
 

@@ -1,25 +1,22 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useRoute } from 'vue-router'
-import { obtenerPartidos } from '../services/partidosService'
-import {
-  guardarPrediccion,
-  obtenerPredicciones
-} from '../services/prediccionesService'
-import { obtenerEstadoPartido } from '../utils/estadoPartido.js'
+import { useEstaticoStore } from '../stores/storeEstaticos' // Usamos Pinia
+import { guardarPrediccion, obtenerPredicciones } from '../services/prediccionesService'
 
 const route = useRoute()
-const partidoId = route.params.id
+const estaticoStore = useEstaticoStore()
+
+// 1. Convertimos el ID en reactivo para asegurar que Vue lo lea bien
+const partidoId = computed(() => route.params.id)
+
 const partido = ref(null)
-const loading = ref(true)    
+const loading = ref(true)
 const error = ref('')
 
-
-// Variables reactivas para capturar el pronóstico del usuario
 const pronosticoLocal = ref(null)
 const pronosticoVisitante = ref(null)
 
-// SACAMOS LA FUNCIÓN DE ONMOUNTED para que el template pueda leerla perfectamente
 const unformatedDate = (fechaStr) => {
   if (!fechaStr) return ''
   const fecha = new Date(fechaStr)
@@ -33,30 +30,30 @@ const unformatedDate = (fechaStr) => {
 
 onMounted(async () => {
   try {
-    // llama al metodo que trae los partidos de mocachino
-    const partidosData = await obtenerPartidos()
-    
-    const partidos= partidosData
-        // buscamos en el array de estadios, un valor que coincida con el id que vino por url
-        partido.value= partidos.find(p=>p.id===partidoId)
+    // Aseguramos que Pinia tenga los datos cargados sin pegarle a la API de nuevo
+    await estaticoStore.cargarDatosMundial()
 
-        if (partido.value) {
-            error.value = ''
+    const partidos = estaticoStore.partidos
 
-            const prediccionGuardada = obtenerPredicciones().find(
-              (item) => String(item.partidoId) === String(partido.value.id)
-            )
+    // 2. Buscamos el partido de forma segura usando el .value del computed
+    partido.value = partidos.find(p => p.id == partidoId.value)
 
-            if (prediccionGuardada) {
-              pronosticoLocal.value = prediccionGuardada.golesLocal
-              pronosticoVisitante.value = prediccionGuardada.golesVisitante
-            }
-            } else {
-            error.value = "No se encontró el partido en la base de datos."
-          }
-
-  } catch (error) {
-    console.error("Error al traer el partido:", error)
+    if (partido.value) {
+      error.value = ''
+      // Buscamos si el usuario ya tenía un pronóstico guardado para este partido
+      const prediccionGuardada = obtenerPredicciones().find(
+        (item) => String(item.partidoId) === String(partido.value.id)
+      )
+      if (prediccionGuardada) {
+        pronosticoLocal.value = prediccionGuardada.golesLocal
+        pronosticoVisitante.value = prediccionGuardada.golesVisitante
+      }
+    } else {
+      error.value = "No se encontró el partido en la base de datos."
+    }
+  } catch (err) {
+    console.error("Error al traer el partido:", err)
+    error.value = "Hubo un problema al cargar los datos."
   } finally {
     loading.value = false
   }
@@ -66,7 +63,7 @@ onMounted(async () => {
 const guardarPronostico = () => {
   if (pronosticoLocal.value === null || pronosticoVisitante.value === null) {
     alert('Por favor completa ambos resultados antes de guardar.')
-    return
+    return 'todos'
   }
 
   if (pronosticoLocal.value < 0 || pronosticoVisitante.value < 0) {
@@ -74,7 +71,8 @@ const guardarPronostico = () => {
     return
   }
 
-  if (obtenerEstadoPartido(partido.value) !== 'programado') {
+  // 3. CORREGIDO: Usamos el estado normalizado que ya viene en el objeto
+  if (partido.value.estado !== 'programado') {
     alert('No se puede predecir un partido ya iniciado o finalizado.')
     return
   }
@@ -101,23 +99,22 @@ const guardarPronostico = () => {
       <div class="marcador">
         <div class="equipo">
           <h2>{{ partido.equipoLocal }}</h2>
-          <span class="goles">{{ partido.golesLocal }}</span>
+          <span v-if="partido.estado!=='finalizado'" class="goles">{{ partido.golesLocal }}</span>
         </div>
         
         <div class="vs">VS</div>
         
         <div class="equipo">
           <h2>{{ partido.equipoVisitante }}</h2>
-          <span class="goles">{{ partido.golesVisitante }}</span>
+          <span v-if="partido.estado!=='finalizado'" class="goles">{{ partido.golesVisitante }}</span>
         </div>
       </div>
 
       <div class="info-adicional">
-        <p><strong>Fecha:</strong> {{ unformatedDate(partido.fecha) }}</p>
-        <p><strong>Estado:</strong> <span class="estado-texto">{{ obtenerEstadoPartido(partido) }}</span></p>
+        <p><strong>Estado:</strong> <span class="estado-texto">{{ partido.estado }}</span></p>
       </div>
 
-      <div class="prode-section" v-if="obtenerEstadoPartido(partido) === 'programado'">
+      <div class="prode-section" v-if="partido.estado === 'programado'">
         <h3>Cargar mi Pronóstico</h3>
         <div class="prode-inputs">
           <input 
