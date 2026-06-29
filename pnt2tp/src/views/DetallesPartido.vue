@@ -57,10 +57,12 @@ onMounted(async () => {
     // Aseguramos que Pinia tenga los datos cargados sin pegarle a la API de nuevo
     await estaticoStore.cargarDatosMundial()
 
-    const partidos = estaticoStore.partidos
+    if (estaticoStore.errores.partidos) {
+      error.value = estaticoStore.errores.partidos
+      return
+    }
 
-    // 2. Buscamos el partido de forma segura usando el .value del computed
-    partido.value = partidos.find(p => p.id == partidoId.value)
+    partido.value = estaticoStore.obtenerPartidoPorId(partidoId.value)
 
     if (partido.value) {
       error.value = ''
@@ -68,9 +70,8 @@ onMounted(async () => {
     } else {
       error.value = "No se encontró el partido en la base de datos."
     }
-  } catch (err) {
-    console.error("Error al traer el partido:", err)
-    error.value = "Hubo un problema al cargar los datos."
+  } catch {
+    error.value = 'Hubo un problema al cargar los datos.'
   } finally {
     loading.value = false
   }
@@ -161,6 +162,10 @@ const guardarPronostico = () => {
           Confirmar Pronóstico
         </button>
       </div>
+    </div>
+
+    <div v-else-if="error" class="error">
+      {{ error }}
     </div>
 
     <div v-else class="error">

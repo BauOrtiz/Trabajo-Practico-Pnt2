@@ -13,23 +13,27 @@ onMounted(async () => {
 estaticoStore.cargarDatosMundial()
 })
 
-// 2. COMPUTED: Busca en tiempo real. Si Pinia se actualiza, esto se actualiza solo
- const estadio =   computed(() => {
-  // Si el array de estadios todavía no existe o está vacío, devolvemos null temporalmente
+const cargando = computed(() => estaticoStore.loading && estaticoStore.estadios.length === 0)
+
+const estadio = computed(() => {
   if (!estaticoStore.estadios || estaticoStore.estadios.length === 0) {
     return null
   }
-  // Buscamos el estadio de forma segura
-  return estaticoStore.estadios.find(e => e.id === estadioId.value)
+
+  return estaticoStore.obtenerEstadioPorId(estadioId.value)
 })
 
 
-// 3. ERROR COMPUTADO: Si ya se cargaron los datos globales pero el ID no existe en la lista
- const error = computed(() => {
+const error = computed(() => {
+  if (estaticoStore.errores.estadios) {
+    return estaticoStore.errores.estadios
+  }
+
   if (estaticoStore.cargado && !estadio.value) {
     return 'No se encontró el estadio en la base de datos.'
   }
-  return estaticoStore.error ? 'No se pudo cargar el detalle del estadio.' : ''
+
+  return ''
 })
 
 function volverAEstadios() {
@@ -44,7 +48,7 @@ function volverAEstadios() {
       <button @click="volverAEstadios">Volver a estadios</button>
     </div>
 
-    <div v-else-if="!estadio" class="mensaje-cargando">
+    <div v-else-if="cargando || !estadio" class="mensaje-cargando">
       <h1>Cargando estadio...</h1>
     </div>
 

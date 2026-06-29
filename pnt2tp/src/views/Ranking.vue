@@ -1,24 +1,25 @@
 <script setup>
 import { computed, onMounted, ref, watch } from 'vue'
 import { useAuthStore } from '../stores/storeAuth'
-import { obtenerPartidos } from '../services/partidosService'
 import { obtenerPredicciones } from '../services/prediccionesService'
 import { calcularTablaGrupo, obtenerGruposDisponibles } from '../services/grupoService'
 import { calcularUsuariosConPuntos } from '../services/puntosService'
+import { useEstaticoStore } from '../stores/storeEstaticos'
 import { obtenerBanderaUrl } from '../utils/banderas.js'
 
 const authStore = useAuthStore()
+const estaticoStore = useEstaticoStore()
 
-const partidos = ref([])
 const predicciones = ref([])
 const grupoSeleccionado = ref('A')
-const cargando = ref(true)
-const error = ref('')
-
-// ─── RANKING AMIGOS ──────────────────────────────────────────────────────────
 const usuarios = ref([])
 const cargandoAmigos = ref(true)
+const errorAmigos = ref('')
 const API_USUARIOS = 'https://6a2b1b9ab687a7d5cbc4de36.mockapi.io/prode/Usuarios'
+
+const partidos = computed(() => estaticoStore.partidos)
+const cargando = computed(() => estaticoStore.loading && partidos.value.length === 0)
+const error = computed(() => estaticoStore.errores.partidos || '')
 
 const usuariosOrdenados = computed(() => {
   const usuariosConPuntos = calcularUsuariosConPuntos(usuarios.value, partidos.value)
@@ -31,7 +32,7 @@ function esUsuarioActual(usuario) {
 
 function iniciales(nombre) {
   if (!nombre) return '?'
-  return nombre.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+  return nombre.split(' ').map((parte) => parte[0]).join('').toUpperCase().slice(0, 2)
 }
 
 function medallaColor(pos) {
@@ -40,9 +41,7 @@ function medallaColor(pos) {
   if (pos === 2) return '#cd7f32'
   return '#555'
 }
-// ─────────────────────────────────────────────────────────────────────────────
 
-// Esta funcion carga las predicciones
 function cargarPredicciones() {
   predicciones.value = obtenerPredicciones(authStore.user?.id)
 }
@@ -52,37 +51,20 @@ watch(
   cargarPredicciones
 )
 
-// Esta funcion calcula los grupos disponibles
-const grupos = computed(() => {
-  return obtenerGruposDisponibles(partidos.value)
-})
+const grupos = computed(() => obtenerGruposDisponibles(partidos.value))
 
-// Esta funcion calcula el ranking con resultados reales
 const rankingReal = computed(() =>
   calcularTablaGrupo(partidos.value, grupoSeleccionado.value)
 )
 
-// Esta funcion calcula el ranking con las predicciones del usuario
 const rankingApostado = computed(() =>
-  calcularTablaGrupo(
-    partidos.value,
-    grupoSeleccionado.value,
-    predicciones.value
-  )
+  calcularTablaGrupo(partidos.value, grupoSeleccionado.value, predicciones.value)
 )
 
-// Esta funcion carga los datos al entrar a la pagina
 onMounted(async () => {
-  try {
-    cargarPredicciones()
-    partidos.value = await obtenerPartidos()
-  } catch (e) {
-    error.value = 'No se pudo cargar el ranking.'
-  } finally {
-    cargando.value = false
-  }
+  cargarPredicciones()
+  estaticoStore.cargarDatosMundial()
 
-  // Cargamos usuarios para el ranking de amigos
   try {
     const res = await fetch(API_USUARIOS)
     if (!res.ok) {
@@ -91,8 +73,8 @@ onMounted(async () => {
 
     const data = await res.json()
     usuarios.value = Array.isArray(data) ? data : []
-  } catch (e) {
-    console.error('No se pudieron cargar los amigos')
+  } catch (errorUsuarios) {
+    errorAmigos.value = 'No se pudo cargar el ranking de amigos.'
   } finally {
     cargandoAmigos.value = false
   }
@@ -201,14 +183,17 @@ onMounted(async () => {
       </article>
     </section>
 
-    <!-- ── RANKING AMIGOS ── -->
     <section class="ranking-amigos">
       <h2 class="amigos-titulo">Ranking de amigos</h2>
 
       <div v-if="cargandoAmigos" class="mensaje">Cargando amigos...</div>
 
+      <div v-else-if="errorAmigos" class="mensaje error">
+        {{ errorAmigos }}
+      </div>
+
       <div v-else-if="usuariosOrdenados.length === 0" class="mensaje">
-        No hay usuarios registrados todavía.
+        No hay usuarios registrados todavia.
       </div>
 
       <template v-else>
@@ -229,7 +214,6 @@ onMounted(async () => {
         </div>
       </template>
     </section>
-
   </main>
 </template>
 
@@ -385,7 +369,6 @@ tr:last-child td {
   }
 }
 
-/* ── Ranking amigos ── */
 .ranking-amigos {
   margin-top: 2.5rem;
 }

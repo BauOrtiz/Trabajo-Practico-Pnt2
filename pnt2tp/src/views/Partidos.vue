@@ -17,7 +17,7 @@
  
 
     onMounted(async () => {
-            estaticoStore.cargarDatosMundial()
+            await estaticoStore.cargarDatosMundial()
     }
 
 
@@ -84,13 +84,12 @@ function mostrarEstado(partido) {
     </section>
 
     <!-- Cambiá "cargando" por "estaticoStore.loading" -->
-    <section v-if="estaticoStore.loading" class="mensaje">
+    <section v-if="estaticoStore.loading && estaticoStore.partidos.length === 0" class="mensaje">
       Cargando partidos...
     </section>
 
-    <!-- Cambiá "error" por "estaticoStore.error" -->
-    <section v-else-if="estaticoStore.error" class="mensaje error">
-      {{ estaticoStore.error }}
+    <section v-else-if="estaticoStore.errores.partidos" class="mensaje error">
+      {{ estaticoStore.errores.partidos }}
     </section>
 
     <section v-else class="contenedor-partidos">

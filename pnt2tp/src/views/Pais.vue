@@ -12,23 +12,26 @@ onMounted(async () => {
 estaticoStore.cargarDatosMundial()
 })
 
-// 2. COMPUTED: Busca en tiempo real. Si Pinia se actualiza, esto se actualiza solo
- const pais =   computed(() => {
-  // Si el array de estadios todavía no existe o está vacío, devolvemos null temporalmente
+const cargando = computed(() => estaticoStore.loading && estaticoStore.selecciones.length === 0)
+
+const pais = computed(() => {
   if (!estaticoStore.selecciones || estaticoStore.selecciones.length === 0) {
     return null
   }
-  // Buscamos el estadio de forma segura
-  return estaticoStore.selecciones.find(e => e.id === paisId.value)
+
+  return estaticoStore.obtenerSeleccionPorId(paisId.value)
 })
 
-
-// 3. ERROR COMPUTADO: Si ya se cargaron los datos globales pero el ID no existe en la lista
 const error = computed(() => {
+  if (estaticoStore.errores.selecciones) {
+    return estaticoStore.errores.selecciones
+  }
+
   if (estaticoStore.cargado && !pais.value) {
     return 'No se encontró el país en la base de datos.'
   }
-  return estaticoStore.error ? 'No se pudo cargar el detalle del país.' : ''
+
+  return ''
 })
 
 </script>
@@ -37,7 +40,7 @@ const error = computed(() => {
   <section class="detalle-pais">
     <p v-if="error" class="mensaje">{{ error }}</p>
 
-    <p v-else-if="!pais" class="mensaje">Cargando país...</p>
+    <p v-else-if="cargando || !pais" class="mensaje">Cargando país...</p>
 
     <template v-else>
       <div class="encabezado">

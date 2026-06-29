@@ -12,6 +12,10 @@ function obtenerDuracionPartidoMs() {
 export function obtenerEstadoPartido(partido, ahora = new Date()) {
   const estadoApi = partido?.estado?.toLowerCase() ?? 'programado'
 
+  if (estadoApi === 'pendiente') {
+    return 'programado'
+  }
+
   if (estadoApi === 'finalizado') {
     return 'finalizado'
   }

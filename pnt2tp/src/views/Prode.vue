@@ -1,12 +1,11 @@
 <script setup>
 import { computed, onMounted, ref, watch } from 'vue'
-
-import { obtenerPartidos } from '../services/partidosService'
 import { useAuthStore } from '../stores/storeAuth'
-import {guardarPredicciones, obtenerPredicciones } from '../services/prediccionesService'
+import { guardarPredicciones, obtenerPredicciones } from '../services/prediccionesService'
+import { useEstaticoStore } from '../stores/storeEstaticos'
 import { obtenerEstadoPartido } from '../utils/estadoPartido.js'
 
-const partidos = ref([])
+const estaticoStore = useEstaticoStore()
 const predicciones = ref([])
 const authStore = useAuthStore()
 
@@ -19,9 +18,9 @@ const prediccionForm = ref({
 const prediccionEditandoId = ref(null)
 const mensaje = ref('')
 
-async function cargarPartidos() {
-  partidos.value = await obtenerPartidos()
-}
+const partidos = computed(() => estaticoStore.partidos)
+const cargando = computed(() => estaticoStore.loading && partidos.value.length === 0)
+const errorCarga = computed(() => estaticoStore.errores.partidos || '')
 
 const partidosDisponibles = computed(() => {
   return partidos.value.filter((partido) => partidoDisponible(partido))
@@ -32,7 +31,7 @@ function partidoDisponible(partido) {
 }
 
 function obtenerPartidoPorId(partidoId) {
-  return partidos.value.find((partido) => String(partido.id) === String(partidoId))
+  return estaticoStore.obtenerPartidoPorId(partidoId)
 }
 
 function cargarDesdeLocalStorage() {
@@ -62,7 +61,7 @@ function guardarPrediccion() {
   mensaje.value = ''
 
   if (!authStore.user?.id) {
-    mensaje.value = 'Debe iniciar sesión para guardar una predicción.'
+    mensaje.value = 'Debe iniciar sesion para guardar una prediccion.'
     return
   }
 
@@ -94,26 +93,25 @@ function guardarPrediccion() {
       prediccion.golesVisitante = Number(prediccionForm.value.golesVisitante)
     }
 
-    mensaje.value = 'Predicción editada correctamente.'
+    mensaje.value = 'Prediccion editada correctamente.'
   } else {
     const yaExistePrediccion = predicciones.value.some(
       (item) => String(item.partidoId) === String(prediccionForm.value.partidoId)
     )
 
     if (yaExistePrediccion) {
-      mensaje.value = 'Ya existe una predicción para este partido.'
+      mensaje.value = 'Ya existe una prediccion para este partido.'
       return
     }
 
-    const nuevaPrediccion = {
+    predicciones.value.push({
       id: Date.now(),
       partidoId: prediccionForm.value.partidoId,
       golesLocal: Number(prediccionForm.value.golesLocal),
       golesVisitante: Number(prediccionForm.value.golesVisitante)
-    }
+    })
 
-    predicciones.value.push(nuevaPrediccion)
-    mensaje.value = 'Predicción guardada correctamente.'
+    mensaje.value = 'Prediccion guardada correctamente.'
   }
 
   guardarPredicciones(predicciones.value, authStore.user.id)
@@ -123,13 +121,12 @@ function guardarPrediccion() {
 function editarPrediccion(prediccion) {
   const partido = obtenerPartidoPorId(prediccion.partidoId)
 
-  if (!partidoDisponible(partido)) {
-    mensaje.value = 'No se puede editar una predicción de un partido ya iniciado o finalizado.'
+  if (!partido || !partidoDisponible(partido)) {
+    mensaje.value = 'No se puede editar una prediccion de un partido ya iniciado o finalizado.'
     return
   }
 
   prediccionEditandoId.value = prediccion.id
-
   prediccionForm.value = {
     partidoId: prediccion.partidoId,
     golesLocal: prediccion.golesLocal,
@@ -140,14 +137,14 @@ function editarPrediccion(prediccion) {
 function eliminarPrediccion(prediccion) {
   const partido = obtenerPartidoPorId(prediccion.partidoId)
 
-  if (!partidoDisponible(partido)) {
-    mensaje.value = 'No se puede eliminar una predicción de un partido ya iniciado o finalizado.'
+  if (!partido || !partidoDisponible(partido)) {
+    mensaje.value = 'No se puede eliminar una prediccion de un partido ya iniciado o finalizado.'
     return
   }
 
   predicciones.value = predicciones.value.filter((item) => item.id !== prediccion.id)
   guardarPredicciones(predicciones.value, authStore.user.id)
-  mensaje.value = 'Predicción eliminada correctamente.'
+  mensaje.value = 'Prediccion eliminada correctamente.'
 }
 
 function formatearFecha(fecha) {
@@ -157,9 +154,9 @@ function formatearFecha(fecha) {
   })
 }
 
-onMounted(async () => {
+onMounted(() => {
   cargarDesdeLocalStorage()
-  await cargarPartidos()
+  estaticoStore.cargarDatosMundial()
 })
 </script>
 
@@ -168,105 +165,115 @@ onMounted(async () => {
     <h1>Prode</h1>
 
     <p class="descripcion">
-      Cargá tus predicciones para los partidos disponibles.
+      Carga tus predicciones para los partidos disponibles.
     </p>
 
-    <form class="formulario" @submit.prevent="guardarPrediccion">
-      <label for="partido">Partido</label>
-      <select id="partido" v-model="prediccionForm.partidoId">
-        <option value="">Seleccione un partido</option>
+    <div v-if="cargando" class="estado-vista">
+      Cargando partidos...
+    </div>
 
-        <option
-          v-for="partido in partidosDisponibles"
-          :key="partido.id"
-          :value="partido.id"
+    <div v-else-if="errorCarga" class="estado-vista estado-vista--error">
+      {{ errorCarga }}
+    </div>
+
+    <template v-else>
+      <form class="formulario" @submit.prevent="guardarPrediccion">
+        <label for="partido">Partido</label>
+        <select id="partido" v-model="prediccionForm.partidoId">
+          <option value="">Seleccione un partido</option>
+
+          <option
+            v-for="partido in partidosDisponibles"
+            :key="partido.id"
+            :value="partido.id"
+          >
+            {{ partido.equipoLocal }} vs {{ partido.equipoVisitante }} -
+            {{ formatearFecha(partido.fecha) }}
+          </option>
+        </select>
+
+        <div class="goles">
+          <div>
+            <label for="golesLocal">Goles local</label>
+            <input
+              id="golesLocal"
+              v-model.number="prediccionForm.golesLocal"
+              type="number"
+              min="0"
+            />
+          </div>
+
+          <div>
+            <label for="golesVisitante">Goles visitante</label>
+            <input
+              id="golesVisitante"
+              v-model.number="prediccionForm.golesVisitante"
+              type="number"
+              min="0"
+            />
+          </div>
+        </div>
+
+        <button type="submit">
+          {{ prediccionEditandoId ? 'Guardar cambios' : 'Guardar prediccion' }}
+        </button>
+
+        <button
+          v-if="prediccionEditandoId"
+          type="button"
+          class="secundario"
+          @click="limpiarFormulario"
         >
-          {{ partido.equipoLocal }} vs {{ partido.equipoVisitante }} -
-          {{ formatearFecha(partido.fecha) }}
-        </option>
-      </select>
+          Cancelar edicion
+        </button>
+      </form>
 
-      <div class="goles">
-        <div>
-          <label for="golesLocal">Goles local</label>
-          <input
-            id="golesLocal"
-            v-model.number="prediccionForm.golesLocal"
-            type="number"
-            min="0"
-          />
-        </div>
+      <p v-if="mensaje" class="mensaje">
+        {{ mensaje }}
+      </p>
 
-        <div>
-          <label for="golesVisitante">Goles visitante</label>
-          <input
-            id="golesVisitante"
-            v-model.number="prediccionForm.golesVisitante"
-            type="number"
-            min="0"
-          />
-        </div>
+      <h2>Mis predicciones</h2>
+
+      <div v-if="predicciones.length === 0" class="sin-predicciones">
+        Todavia no cargaste predicciones.
       </div>
 
-      <button type="submit">
-        {{ prediccionEditandoId ? 'Guardar cambios' : 'Guardar predicción' }}
-      </button>
+      <div v-else class="lista">
+        <article
+          v-for="prediccion in predicciones"
+          :key="prediccion.id"
+          class="card"
+        >
+          <template v-if="obtenerPartidoPorId(prediccion.partidoId)">
+            <h3>
+              {{ obtenerPartidoPorId(prediccion.partidoId).equipoLocal }}
+              vs
+              {{ obtenerPartidoPorId(prediccion.partidoId).equipoVisitante }}
+            </h3>
 
-      <button
-        v-if="prediccionEditandoId"
-        type="button"
-        class="secundario"
-        @click="limpiarFormulario"
-      >
-        Cancelar edición
-      </button>
-    </form>
+            <p>
+              Fecha:
+              {{ formatearFecha(obtenerPartidoPorId(prediccion.partidoId).fecha) }}
+            </p>
 
-    <p v-if="mensaje" class="mensaje">
-      {{ mensaje }}
-    </p>
+            <p>
+              Prediccion:
+              {{ prediccion.golesLocal }} - {{ prediccion.golesVisitante }}
+            </p>
 
-    <h2>Mis predicciones</h2>
+            <div class="acciones">
+              <button type="button" @click="editarPrediccion(prediccion)">
+                Editar
+              </button>
 
-    <div v-if="predicciones.length === 0" class="sin-predicciones">
-      Todavía no cargaste predicciones.
-    </div>
-
-    <div v-else class="lista">
-      <article
-        v-for="prediccion in predicciones"
-        :key="prediccion.id"
-        class="card"
-      >
-        <template v-if="obtenerPartidoPorId(prediccion.partidoId)">
-          <h3>
-            {{ obtenerPartidoPorId(prediccion.partidoId).equipoLocal }}
-            vs
-            {{ obtenerPartidoPorId(prediccion.partidoId).equipoVisitante }}
-          </h3>
-
-          <p>
-            Fecha:
-            {{ formatearFecha(obtenerPartidoPorId(prediccion.partidoId).fecha) }}
-          </p>
-
-          <p>
-            Predicción:
-            {{ prediccion.golesLocal }} - {{ prediccion.golesVisitante }}
-          </p>
-
-          <div class="acciones">
-            <button type="button" @click="editarPrediccion(prediccion)">
-              Editar
-            </button>
-
-            <button type="button" class="eliminar" @click="eliminarPrediccion(prediccion)">
-              Eliminar
-            </button>
-          </div>
-        </template>
-      </article>
-    </div>
+              <button type="button" class="eliminar" @click="eliminarPrediccion(prediccion)">
+                Eliminar
+              </button>
+            </div>
+          </template>
+        </article>
+      </div>
+    </template>
   </section>
 </template>
 
@@ -279,6 +286,19 @@ onMounted(async () => {
 
 .descripcion {
   margin-bottom: 1rem;
+}
+
+.estado-vista {
+  padding: 1rem;
+  border-radius: 12px;
+  background: #1f2937;
+  color: #e5e7eb;
+  text-align: center;
+}
+
+.estado-vista--error {
+  background: #7f1d1d;
+  color: white;
 }
 
 .formulario {
