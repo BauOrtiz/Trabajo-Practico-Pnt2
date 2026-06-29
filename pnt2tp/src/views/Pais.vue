@@ -24,20 +24,22 @@ estaticoStore.cargarDatosMundial()
 
 
 // 3. ERROR COMPUTADO: Si ya se cargaron los datos globales pero el ID no existe en la lista
- const error = computed(() => {
-  if (estaticoStore.cargado && !estadio.value) {
-    return 'No se encontró el estadio en la base de datos.'
+const error = computed(() => {
+  if (estaticoStore.cargado && !pais.value) {
+    return 'No se encontró el país en la base de datos.'
   }
-  return estaticoStore.error ? 'No se pudo cargar el detalle del estadio.' : ''
+  return estaticoStore.error ? 'No se pudo cargar el detalle del país.' : ''
 })
 
 </script>
 
 <template>
   <section class="detalle-pais">
+    <p v-if="error" class="mensaje">{{ error }}</p>
 
+    <p v-else-if="!pais" class="mensaje">Cargando país...</p>
 
-    
+    <template v-else>
       <div class="encabezado">
         <img 
           v-if="pais.bandera" 
@@ -91,13 +93,18 @@ estaticoStore.cargarDatosMundial()
       <p v-else>
         No hay jugadores cargados.
       </p>
-    
+    </template>
   </section>
 </template>
 
 <style scoped>
 .detalle-pais {
   padding: 24px;
+}
+
+.mensaje {
+  color: #e5e7eb;
+  text-align: center;
 }
 
 .encabezado {

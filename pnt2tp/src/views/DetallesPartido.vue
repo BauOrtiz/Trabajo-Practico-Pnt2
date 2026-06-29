@@ -3,6 +3,7 @@ import { ref, onMounted, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { useEstaticoStore } from '../stores/storeEstaticos' // Usamos Pinia
 import { guardarPrediccion, obtenerPredicciones } from '../services/prediccionesService'
+import { obtenerEstadoPartido } from '../utils/estadoPartido.js'
 
 const route = useRoute()
 const estaticoStore = useEstaticoStore()
@@ -71,8 +72,7 @@ const guardarPronostico = () => {
     return
   }
 
-  // 3. CORREGIDO: Usamos el estado normalizado que ya viene en el objeto
-  if (partido.value.estado !== 'programado') {
+  if (obtenerEstadoPartido(partido.value) !== 'programado') {
     alert('No se puede predecir un partido ya iniciado o finalizado.')
     return
   }
@@ -99,22 +99,22 @@ const guardarPronostico = () => {
       <div class="marcador">
         <div class="equipo">
           <h2>{{ partido.equipoLocal }}</h2>
-          <span v-if="partido.estado!=='finalizado'" class="goles">{{ partido.golesLocal }}</span>
+          <span v-if="obtenerEstadoPartido(partido) === 'finalizado'" class="goles">{{ partido.golesLocal }}</span>
         </div>
         
         <div class="vs">VS</div>
         
         <div class="equipo">
           <h2>{{ partido.equipoVisitante }}</h2>
-          <span v-if="partido.estado!=='finalizado'" class="goles">{{ partido.golesVisitante }}</span>
+          <span v-if="obtenerEstadoPartido(partido) === 'finalizado'" class="goles">{{ partido.golesVisitante }}</span>
         </div>
       </div>
 
       <div class="info-adicional">
-        <p><strong>Estado:</strong> <span class="estado-texto">{{ partido.estado }}</span></p>
+        <p><strong>Estado:</strong> <span class="estado-texto">{{ obtenerEstadoPartido(partido) }}</span></p>
       </div>
 
-      <div class="prode-section" v-if="partido.estado === 'programado'">
+      <div class="prode-section" v-if="obtenerEstadoPartido(partido) === 'programado'">
         <h3>Cargar mi Pronóstico</h3>
         <div class="prode-inputs">
           <input 
