@@ -71,7 +71,7 @@ function navegarDesdeMenu(ruta) {
 
 
 function cargarPredicciones() {
-  predicciones.value = obtenerPredicciones()
+  predicciones.value = obtenerPredicciones(authStore.user?.id)
 }
 
 // Trae los partidos desde la API para poder calcular puntos reales del Prode.
@@ -87,9 +87,11 @@ async function cargarPartidos() {
 
 // Si el login fue correcto, cierra automaticamente el modal de login.
 watch(
-  () => authStore.isLoggedIn,
-  (estaLogueado) => {
-    if (estaLogueado) {
+  () => authStore.user?.id,
+  (usuarioId) => {
+    cargarPredicciones()
+
+    if (usuarioId) {
       cerrarLogin()
     }
   }

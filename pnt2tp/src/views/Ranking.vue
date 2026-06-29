@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useAuthStore } from '../stores/storeAuth'
 import { obtenerPartidos } from '../services/partidosService'
 import { obtenerPredicciones } from '../services/prediccionesService'
@@ -42,8 +42,13 @@ function medallaColor(pos) {
 
 // Esta funcion carga las predicciones
 function cargarPredicciones() {
-  predicciones.value = obtenerPredicciones()
+  predicciones.value = obtenerPredicciones(authStore.user?.id)
 }
+
+watch(
+  () => authStore.user?.id,
+  cargarPredicciones
+)
 
 // Esta funcion calcula los grupos disponibles
 const grupos = computed(() => {

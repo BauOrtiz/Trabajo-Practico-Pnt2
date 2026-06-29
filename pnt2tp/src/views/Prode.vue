@@ -1,12 +1,14 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 
 import { obtenerPartidos } from '../services/partidosService'
+import { useAuthStore } from '../stores/storeAuth'
 import {guardarPredicciones, obtenerPredicciones } from '../services/prediccionesService'
 import { obtenerEstadoPartido } from '../utils/estadoPartido.js'
 
 const partidos = ref([])
 const predicciones = ref([])
+const authStore = useAuthStore()
 
 const prediccionForm = ref({
   partidoId: '',
@@ -34,8 +36,17 @@ function obtenerPartidoPorId(partidoId) {
 }
 
 function cargarDesdeLocalStorage() {
-  predicciones.value = obtenerPredicciones()
+  predicciones.value = obtenerPredicciones(authStore.user?.id)
 }
+
+watch(
+  () => authStore.user?.id,
+  () => {
+    cargarDesdeLocalStorage()
+    limpiarFormulario()
+    mensaje.value = ''
+  }
+)
 
 function limpiarFormulario() {
   prediccionForm.value = {
@@ -49,6 +60,11 @@ function limpiarFormulario() {
 
 function guardarPrediccion() {
   mensaje.value = ''
+
+  if (!authStore.user?.id) {
+    mensaje.value = 'Debe iniciar sesión para guardar una predicción.'
+    return
+  }
 
   const partido = obtenerPartidoPorId(prediccionForm.value.partidoId)
 
@@ -100,7 +116,7 @@ function guardarPrediccion() {
     mensaje.value = 'Predicción guardada correctamente.'
   }
 
-  guardarPredicciones(predicciones.value)
+  guardarPredicciones(predicciones.value, authStore.user.id)
   limpiarFormulario()
 }
 
@@ -130,7 +146,7 @@ function eliminarPrediccion(prediccion) {
   }
 
   predicciones.value = predicciones.value.filter((item) => item.id !== prediccion.id)
-  guardarPredicciones(predicciones.value)
+  guardarPredicciones(predicciones.value, authStore.user.id)
   mensaje.value = 'Predicción eliminada correctamente.'
 }
 

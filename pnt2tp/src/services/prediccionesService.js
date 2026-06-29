@@ -1,8 +1,13 @@
-const CLAVE_PREDICCIONES = 'predicciones'
+function obtenerClavePredicciones(usuarioId) {
+  return usuarioId ? `predicciones_usuario_${usuarioId}` : null
+}
 
-export function obtenerPredicciones() {
+export function obtenerPredicciones(usuarioId) {
+  const clave = obtenerClavePredicciones(usuarioId)
+  if (!clave) return []
+
   try {
-    const datosGuardados = localStorage.getItem(CLAVE_PREDICCIONES)
+    const datosGuardados = localStorage.getItem(clave)
     if (!datosGuardados) return []
 
     const predicciones = JSON.parse(datosGuardados)
@@ -12,13 +17,27 @@ export function obtenerPredicciones() {
   }
 }
 
-export function guardarPredicciones(predicciones) {
-  localStorage.setItem(CLAVE_PREDICCIONES, JSON.stringify(predicciones))
+export function guardarPredicciones(predicciones, usuarioId) {
+  const clave = obtenerClavePredicciones(usuarioId)
+  if (!clave) {
+    throw new Error('Se necesita un usuario para guardar predicciones.')
+  }
+
+  const prediccionesDelUsuario = predicciones.map((prediccion) => ({
+    ...prediccion,
+    usuarioId: String(usuarioId)
+  }))
+
+  localStorage.setItem(clave, JSON.stringify(prediccionesDelUsuario))
 }
 
 // Crea una prediccion o actualiza la existente para el mismo partido.
-export function guardarPrediccion(prediccion) {
-  const predicciones = obtenerPredicciones()
+export function guardarPrediccion(prediccion, usuarioId) {
+  if (!usuarioId) {
+    throw new Error('Se necesita un usuario para guardar la predicción.')
+  }
+
+  const predicciones = obtenerPredicciones(usuarioId)
   const indice = predicciones.findIndex(
     (item) => String(item.partidoId) === String(prediccion.partidoId)
   )
@@ -32,12 +51,13 @@ export function guardarPrediccion(prediccion) {
   } else {
     predicciones.push({
       id: Date.now(),
+      usuarioId: String(usuarioId),
       partidoId: prediccion.partidoId,
       golesLocal: Number(prediccion.golesLocal),
       golesVisitante: Number(prediccion.golesVisitante)
     })
   }
 
-  guardarPredicciones(predicciones)
+  guardarPredicciones(predicciones, usuarioId)
   return predicciones
 }

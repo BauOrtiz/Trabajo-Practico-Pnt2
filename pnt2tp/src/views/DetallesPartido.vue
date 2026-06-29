@@ -1,12 +1,14 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useEstaticoStore } from '../stores/storeEstaticos' // Usamos Pinia
+import { useAuthStore } from '../stores/storeAuth'
 import { guardarPrediccion, obtenerPredicciones } from '../services/prediccionesService'
 import { obtenerEstadoPartido } from '../utils/estadoPartido.js'
 
 const route = useRoute()
 const estaticoStore = useEstaticoStore()
+const authStore = useAuthStore()
 
 // 1. Convertimos el ID en reactivo para asegurar que Vue lo lea bien
 const partidoId = computed(() => route.params.id)
@@ -17,6 +19,27 @@ const error = ref('')
 
 const pronosticoLocal = ref(null)
 const pronosticoVisitante = ref(null)
+
+function cargarPronosticoDelUsuario() {
+  pronosticoLocal.value = null
+  pronosticoVisitante.value = null
+
+  if (!partido.value) return
+
+  const prediccionGuardada = obtenerPredicciones(authStore.user?.id).find(
+    (item) => String(item.partidoId) === String(partido.value.id)
+  )
+
+  if (prediccionGuardada) {
+    pronosticoLocal.value = prediccionGuardada.golesLocal
+    pronosticoVisitante.value = prediccionGuardada.golesVisitante
+  }
+}
+
+watch(
+  () => authStore.user?.id,
+  cargarPronosticoDelUsuario
+)
 
 const unformatedDate = (fechaStr) => {
   if (!fechaStr) return ''
@@ -41,14 +64,7 @@ onMounted(async () => {
 
     if (partido.value) {
       error.value = ''
-      // Buscamos si el usuario ya tenía un pronóstico guardado para este partido
-      const prediccionGuardada = obtenerPredicciones().find(
-        (item) => String(item.partidoId) === String(partido.value.id)
-      )
-      if (prediccionGuardada) {
-        pronosticoLocal.value = prediccionGuardada.golesLocal
-        pronosticoVisitante.value = prediccionGuardada.golesVisitante
-      }
+      cargarPronosticoDelUsuario()
     } else {
       error.value = "No se encontró el partido en la base de datos."
     }
@@ -62,6 +78,11 @@ onMounted(async () => {
 
 // Función para procesar el prode
 const guardarPronostico = () => {
+  if (!authStore.user?.id) {
+    alert('Debe iniciar sesión para guardar una predicción.')
+    return
+  }
+
   if (pronosticoLocal.value === null || pronosticoVisitante.value === null) {
     alert('Por favor completa ambos resultados antes de guardar.')
     return 'todos'
@@ -77,11 +98,14 @@ const guardarPronostico = () => {
     return
   }
 
-  guardarPrediccion({
-    partidoId: partido.value.id,
-    golesLocal: pronosticoLocal.value,
-    golesVisitante: pronosticoVisitante.value
-  })
+  guardarPrediccion(
+    {
+      partidoId: partido.value.id,
+      golesLocal: pronosticoLocal.value,
+      golesVisitante: pronosticoVisitante.value
+    },
+    authStore.user.id
+  )
 
   alert(`Pronóstico guardado: ${partido.value.equipoLocal} ${pronosticoLocal.value} - ${pronosticoVisitante.value} ${partido.value.equipoVisitante}`)
 }
