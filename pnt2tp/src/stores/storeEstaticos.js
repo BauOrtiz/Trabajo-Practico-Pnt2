@@ -24,11 +24,10 @@ export const useEstaticoStore = defineStore('estatico', {
 
       try {
         // 2. Ejecutamos los 3 fetches EN PARALELO con Promise.all (es mucho más rápido)
-        const [resPartidos, resEstadios, resSelecciones] = await Promise.all([
-          await obtenerPartidos(),
-          await obtenerEstadios(),
-          await obtenerSelecciones()
-        ])
+         const resPartidos= await obtenerPartidos()
+         const resEstadios= await obtenerEstadios()
+         const resSelecciones= await obtenerSelecciones()
+        
 
 
 
