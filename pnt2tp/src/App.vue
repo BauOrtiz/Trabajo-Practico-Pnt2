@@ -86,7 +86,6 @@ watch(
 // Carga datos iniciales cuando se monta la app.
 onMounted(async () => {
   cargarPredicciones()
-  storeEstaticos.cargarDatosMundial()  
 })
 </script>
 

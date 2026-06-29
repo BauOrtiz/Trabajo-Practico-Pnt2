@@ -13,84 +13,6 @@ function tieneDatosCompletos(store) {
   return store.partidos.length > 0 && store.estadios.length > 0 && store.selecciones.length > 0
 }
 
-function crearCarga(nombre, promesa) {
-  return {
-    nombre,
-    promesa
-  }
-}
-
-function obtenerCargasPendientes(store, force) {
-  const cargas = []
-
-  if (force || store.partidos.length === 0) {
-    store.errores.partidos = ''
-    cargas.push(crearCarga('partidos', obtenerPartidos()))
-  }
-
-  if (force || store.estadios.length === 0) {
-    store.errores.estadios = ''
-    cargas.push(crearCarga('estadios', obtenerEstadios()))
-  }
-
-  if (force || store.selecciones.length === 0) {
-    store.errores.selecciones = ''
-    cargas.push(crearCarga('selecciones', obtenerSelecciones()))
-  }
-
-  return cargas
-}
-
-function guardarResultado(store, nombre, valor) {
-  if (nombre === 'partidos') {
-    store.partidos = valor
-  }
-
-  if (nombre === 'estadios') {
-    store.estadios = valor?.estadios ?? []
-  }
-
-  if (nombre === 'selecciones') {
-    store.selecciones = valor?.selecciones ?? []
-  }
-}
-
-function guardarError(store, nombre) {
-  if (nombre === 'partidos') {
-    store.errores.partidos = 'No se pudieron cargar los partidos.'
-  }
-
-  if (nombre === 'estadios') {
-    store.errores.estadios = 'No se pudieron cargar los estadios.'
-  }
-
-  if (nombre === 'selecciones') {
-    store.errores.selecciones = 'No se pudieron cargar las selecciones.'
-  }
-}
-
-function limpiarErroresDeDatosCargados(store) {
-  if (store.partidos.length > 0) {
-    store.errores.partidos = ''
-  }
-
-  if (store.estadios.length > 0) {
-    store.errores.estadios = ''
-  }
-
-  if (store.selecciones.length > 0) {
-    store.errores.selecciones = ''
-  }
-}
-
-function sincronizarEstadoDeCarga(store) {
-  limpiarErroresDeDatosCargados(store)
-
-  const erroresActivos = Object.values(store.errores).filter(Boolean)
-  store.error = erroresActivos[0] || ''
-  store.cargado = tieneDatosCompletos(store)
-}
-
 export const useEstaticoStore = defineStore('estatico', {
   state: () => ({
     partidos: [],
@@ -99,8 +21,7 @@ export const useEstaticoStore = defineStore('estatico', {
     cargado: false,
     loading: false,
     error: '',
-    errores: crearErroresVacios(),
-    cargaPromise: null
+    errores: crearErroresVacios()
   }),
 
   getters: {
@@ -117,55 +38,92 @@ export const useEstaticoStore = defineStore('estatico', {
     },
 
     obtenerPartidoPorId(id) {
-      return this.partidos.find((partido) => String(partido.id) === String(id)) ?? null
+      return this.partidos.find((partido) => String(partido.id) === String(id)) || null
     },
 
     obtenerEstadioPorId(id) {
-      return this.estadios.find((estadio) => String(estadio.id) === String(id)) ?? null
+      return this.estadios.find((estadio) => String(estadio.id) === String(id)) || null
     },
 
     obtenerSeleccionPorId(id) {
-      return this.selecciones.find((seleccion) => String(seleccion.id) === String(id)) ?? null
+      return this.selecciones.find((seleccion) => String(seleccion.id) === String(id)) || null
     },
 
-    async cargarDatosMundial(force = false) {
-      if (this.loading && this.cargaPromise) {
-        return this.cargaPromise
+    actualizarEstadoCarga() {
+      if (this.partidos.length > 0) {
+        this.errores.partidos = ''
       }
 
-      if (tieneDatosCompletos(this) && !force) {
+      if (this.estadios.length > 0) {
+        this.errores.estadios = ''
+      }
+
+      if (this.selecciones.length > 0) {
+        this.errores.selecciones = ''
+      }
+
+      this.error = this.errores.partidos || this.errores.estadios || this.errores.selecciones || ''
+      this.cargado = tieneDatosCompletos(this)
+    },
+
+    async cargarPartidos() {
+      if (this.partidos.length > 0) return
+
+      this.errores.partidos = ''
+
+      try {
+        this.partidos = await obtenerPartidos()
+      } catch {
+        this.errores.partidos = 'No se pudieron cargar los partidos.'
+      }
+    },
+
+    async cargarEstadios() {
+      if (this.estadios.length > 0) return
+
+      this.errores.estadios = ''
+
+      try {
+        const respuesta = await obtenerEstadios()
+        this.estadios = respuesta.estadios || []
+      } catch {
+        this.errores.estadios = 'No se pudieron cargar los estadios.'
+      }
+    },
+
+    async cargarSelecciones() {
+      if (this.selecciones.length > 0) return
+
+      this.errores.selecciones = ''
+
+      try {
+        const respuesta = await obtenerSelecciones()
+        this.selecciones = respuesta.selecciones || []
+      } catch {
+        this.errores.selecciones = 'No se pudieron cargar las selecciones.'
+      }
+    },
+
+    async cargarDatosMundial() {
+      if (this.loading) {
+        return this
+      }
+
+      if (tieneDatosCompletos(this)) {
         this.cargado = true
         return this
       }
 
       this.loading = true
 
-      this.cargaPromise = (async () => {
-        const cargas = obtenerCargasPendientes(this, force)
-
-        const resultados = await Promise.allSettled(cargas.map((carga) => carga.promesa))
-
-        resultados.forEach((resultado, index) => {
-          const nombre = cargas[index].nombre
-
-          if (resultado.status === 'fulfilled') {
-            guardarResultado(this, nombre, resultado.value)
-            return
-          }
-
-          guardarError(this, nombre)
-        })
-
-        sincronizarEstadoDeCarga(this)
-
-        return this
-      })()
-
       try {
-        return await this.cargaPromise
+        await this.cargarPartidos()
+        await this.cargarEstadios()
+        await this.cargarSelecciones()
+        this.actualizarEstadoCarga()
+        return this
       } finally {
         this.loading = false
-        this.cargaPromise = null
       }
     }
   }
