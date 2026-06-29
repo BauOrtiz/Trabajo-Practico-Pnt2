@@ -1,14 +1,9 @@
 <script setup>
-    import { obtenerEstadios } from '@/services/partidosService';
     import { useRouter } from 'vue-router'
-    import { ref, onMounted } from 'vue'
-    import DetalleEstadio from './DetalleEstadio.vue';
+    import { onMounted } from 'vue'
     import { useEstaticoStore } from '../stores/storeEstaticos'
 
     const router= useRouter()
-    const estadios= ref([])
-    const cargando = ref(true)
-    const error = ref('')
     const estaticoStore = useEstaticoStore()
 
     function detalleEstadio(id){
@@ -19,7 +14,7 @@
 
 
     onMounted(async ()=>{
-
+    estaticoStore.cargarDatosMundial()
     }
     )
 

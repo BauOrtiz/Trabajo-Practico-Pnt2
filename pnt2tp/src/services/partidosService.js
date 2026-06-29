@@ -27,7 +27,6 @@ export async function obtenerPartidos() {
 
   const data = await respuesta.json()
   const partidos = data.partidos ?? []
-
   return partidos.map(normalizarPartido)
 }
 
