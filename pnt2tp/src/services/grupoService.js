@@ -91,14 +91,20 @@ export function calcularTablaGrupo(partidos, grupoId, predicciones = null) {
       )
     : null
 
-  for (const partido of partidosDelGrupo) {
+  // Primero filtramos los partidos que tienen un resultado para calcular.
+  // Si hay predicciones usamos esas; si no, solo usamos partidos finalizados.
+  const partidosConResultado = partidosDelGrupo.filter((partido) => {
+    if (prediccionesPorPartido) {
+      return prediccionesPorPartido.has(String(partido.id))
+    }
+
+    return obtenerEstadoPartido(partido) === 'finalizado'
+  })
+
+  for (const partido of partidosConResultado) {
     const resultado = prediccionesPorPartido
       ? prediccionesPorPartido.get(String(partido.id))
-      : obtenerEstadoPartido(partido) === 'finalizado'
-        ? partido
-        : null
-
-    if (!resultado) continue
+      : partido
 
     sumarResultado(
       tabla,
