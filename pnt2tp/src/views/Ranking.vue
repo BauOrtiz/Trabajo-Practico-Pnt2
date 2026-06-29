@@ -4,6 +4,7 @@ import { useAuthStore } from '../stores/storeAuth'
 import { obtenerPartidos } from '../services/partidosService'
 import { obtenerPredicciones } from '../services/prediccionesService'
 import { calcularTablaGrupo, obtenerGruposDisponibles } from '../services/grupoService'
+import { calcularUsuariosConPuntos } from '../services/puntosService'
 import { obtenerBanderaUrl } from '../utils/banderas.js'
 
 const authStore = useAuthStore()
@@ -20,7 +21,8 @@ const cargandoAmigos = ref(true)
 const API_USUARIOS = 'https://6a2b1b9ab687a7d5cbc4de36.mockapi.io/prode/Usuarios'
 
 const usuariosOrdenados = computed(() => {
-  return [...usuarios.value].sort((a, b) => (b.puntosTotales || 0) - (a.puntosTotales || 0))
+  const usuariosConPuntos = calcularUsuariosConPuntos(usuarios.value, partidos.value)
+  return [...usuariosConPuntos].sort((a, b) => (b.puntosTotales || 0) - (a.puntosTotales || 0))
 })
 
 function esUsuarioActual(usuario) {
@@ -83,6 +85,10 @@ onMounted(async () => {
   // Cargamos usuarios para el ranking de amigos
   try {
     const res = await fetch(API_USUARIOS)
+    if (!res.ok) {
+      throw new Error('No se pudo cargar la lista de usuarios.')
+    }
+
     const data = await res.json()
     usuarios.value = Array.isArray(data) ? data : []
   } catch (e) {
