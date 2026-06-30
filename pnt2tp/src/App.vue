@@ -1,6 +1,6 @@
 <script setup>
 import { computed, onMounted, ref, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import Login from './views/Login.vue'
 import { useAuthStore } from './stores/storeAuth'
 import { obtenerPredicciones } from './services/prediccionesService'
@@ -10,21 +10,44 @@ import { useEstaticoStore } from './stores/storeEstaticos'
 const authStore = useAuthStore()
 const storeEstaticos = useEstaticoStore()
 const router = useRouter()
+const route = useRoute()
 const mostrarLogin = ref(false)
 const mostrarMenu = ref(false)
 const predicciones = ref([])
 
-// Lista de rutas que se muestran en el menu lateral y en la navbar oculta.
-const linksNavbar = [
+// Lista de rutas que se muestran en la navbar principal.
+const linksBaseNavbar = [
   { to: '/home', label: 'Inicio' },
     { to: '/partidos', label: 'Partidos' },
   { to: '/ranking', label: 'Ranking' },
   { to: '/prode', label: 'Prode' },
   { to: '/paises', label: 'Selecciones' },
-  { to: '/estadios', label: 'Estadios' },
-  { to: '/perfil', label: 'Perfil' }
-  
+  { to: '/estadios', label: 'Estadios' }
 ]
+
+const linksNavbar = computed(() => {
+  if (!authStore.isAdmin) {
+    return linksBaseNavbar
+  }
+
+  return [
+    ...linksBaseNavbar,
+    { to: '/admin/calendario', label: 'Admin' }
+  ]
+})
+
+const linksMenu = computed(() => {
+  const links = [...linksNavbar.value]
+
+  if (authStore.isLoggedIn) {
+    links.push({
+      to: '/perfil',
+      label: 'Perfil'
+    })
+  }
+
+  return links
+})
 
 // Muestra el nombre del usuario si existe; si no, usa el email o un texto generico.
 const nombreUsuario = computed(() => {
@@ -45,6 +68,10 @@ function abrirLogin() {
 
 function cerrarLogin() {
   mostrarLogin.value = false
+}
+
+function irARegistroDesdeLogin() {
+  cerrarLogin()
 }
 
 // Abre el panel de usuario y actualiza predicciones antes de mostrarlo.
@@ -72,6 +99,15 @@ function cargarPredicciones() {
   predicciones.value = obtenerPredicciones(authStore.user?.id)
 }
 
+function abrirLoginDesdeRuta() {
+  if (route.query.login !== '1' || authStore.isLoggedIn) {
+    return
+  }
+
+  mostrarLogin.value = true
+  router.replace({ path: route.path, query: {} })
+}
+
 
 // Si el login fue correcto, cierra automaticamente el modal de login.
 watch(
@@ -85,9 +121,15 @@ watch(
   }
 )
 
+watch(
+  () => route.query.login,
+  abrirLoginDesdeRuta
+)
+
 // Carga datos iniciales cuando se monta la app.
 onMounted(async () => {
   cargarPredicciones()
+  abrirLoginDesdeRuta()
 })
 </script>
 
@@ -161,7 +203,7 @@ onMounted(async () => {
           <!-- Links de navegacion dentro del panel lateral. -->
           <nav class="side-menu-links" aria-label="Navegacion lateral">
             <router-link
-              v-for="link in linksNavbar"
+              v-for="link in linksMenu"
               :key="link.to"
               :to="link.to"
               @click.prevent="navegarDesdeMenu(link.to)"
@@ -209,7 +251,7 @@ onMounted(async () => {
           ×
         </button>
 
-        <Login />
+        <Login @registrarse="irARegistroDesdeLogin" />
       </section>
     </div>
   </div>

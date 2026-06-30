@@ -5,6 +5,7 @@ import { useAuthStore } from '../stores/storeAuth'
 
 const authStore = useAuthStore()
 const router = useRouter()
+const emit = defineEmits(['registrarse'])
 
 const email = ref('')
 const contrasenia = ref('')
@@ -22,6 +23,7 @@ async function loguearse() {
 }
 
 function registrarse() {
+  emit('registrarse')
   router.push('/registro')
 }
 

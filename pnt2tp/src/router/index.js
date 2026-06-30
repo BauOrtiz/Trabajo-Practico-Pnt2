@@ -15,6 +15,7 @@ import Pais from '../views/Pais.vue'
 import Estadios from '../views/Estadios.vue'
 import DetalleEstadio from '../views/DetalleEstadio.vue'
 import Registro from '../views/Registro.vue'
+import AdminCalendario from '../views/AdminCalendario.vue'
 
 
 
@@ -37,7 +38,7 @@ const routes = [
     {
         path: '/perfil',
          name: 'Perfil',
-         component: () => import('../views/Perfil.vue')
+         component: Perfil
     },
     
      {
@@ -95,6 +96,12 @@ const routes = [
         path: '/ranking',
         name: 'Ranking',
         component: Ranking
+    },
+
+    {
+        path: '/admin/calendario',
+        name: 'AdminCalendario',
+        component: AdminCalendario
     },
 
 //Paises:
