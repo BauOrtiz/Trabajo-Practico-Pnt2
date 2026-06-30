@@ -17,11 +17,13 @@ const predicciones = ref([])
 // Lista de rutas que se muestran en el menu lateral y en la navbar oculta.
 const linksNavbar = [
   { to: '/home', label: 'Inicio' },
-  { to: '/partidos', label: 'Partidos' },
+    { to: '/partidos', label: 'Partidos' },
   { to: '/ranking', label: 'Ranking' },
   { to: '/prode', label: 'Prode' },
   { to: '/paises', label: 'Selecciones' },
-  { to: '/estadios', label: 'Estadios' }
+  { to: '/estadios', label: 'Estadios' },
+  { to: '/perfil', label: 'Perfil' }
+  
 ]
 
 // Muestra el nombre del usuario si existe; si no, usa el email o un texto generico.

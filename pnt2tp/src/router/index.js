@@ -35,9 +35,9 @@ const routes = [
         component: Login
     },
     {
-        path: '/perfil/:id',
-        name: 'Perfil',
-        component: Perfil
+        path: '/perfil',
+         name: 'Perfil',
+         component: () => import('../views/Perfil.vue')
     },
     {
         path: '/:pathMatch(.*)*',
