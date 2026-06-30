@@ -27,6 +27,19 @@ const partidosDisponibles = computed(() => {
   return partidos.value.filter((partido) => partidoDisponible(partido))
 })
 
+const partidoSeleccionado = computed(() => {
+  return obtenerPartidoPorId(prediccionForm.value.partidoId)
+})
+
+const prediccionesConPartido = computed(() => {
+  return predicciones.value
+    .map((prediccion) => ({
+      ...prediccion,
+      partido: obtenerPartidoPorId(prediccion.partidoId)
+    }))
+    .filter((prediccion) => prediccion.partido)
+})
+
 function partidoDisponible(partido) {
   return obtenerEstadoPartido(partido) === 'programado'
 }
@@ -58,6 +71,14 @@ function limpiarFormulario() {
   prediccionEditandoId.value = null
 }
 
+function seleccionarPartido(partidoId) {
+  prediccionForm.value.partidoId = partidoId
+}
+
+function estaSeleccionado(partidoId) {
+  return String(prediccionForm.value.partidoId) === String(partidoId)
+}
+
 function guardarPrediccion() {
   mensaje.value = ''
 
@@ -83,6 +104,18 @@ function guardarPrediccion() {
     return
   }
 
+  const yaExistePrediccion = predicciones.value.some((item) => {
+    const mismoPartido = String(item.partidoId) === String(prediccionForm.value.partidoId)
+    const esPrediccionEditada = item.id === prediccionEditandoId.value
+
+    return mismoPartido && !esPrediccionEditada
+  })
+
+  if (yaExistePrediccion) {
+    mensaje.value = 'Ya existe una prediccion para este partido.'
+    return
+  }
+
   if (prediccionEditandoId.value) {
     const prediccion = predicciones.value.find(
       (item) => item.id === prediccionEditandoId.value
@@ -96,15 +129,6 @@ function guardarPrediccion() {
 
     mensaje.value = 'Prediccion editada correctamente.'
   } else {
-    const yaExistePrediccion = predicciones.value.some(
-      (item) => String(item.partidoId) === String(prediccionForm.value.partidoId)
-    )
-
-    if (yaExistePrediccion) {
-      mensaje.value = 'Ya existe una prediccion para este partido.'
-      return
-    }
-
     predicciones.value.push({
       id: Date.now(),
       partidoId: prediccionForm.value.partidoId,
@@ -165,11 +189,13 @@ onMounted(() => {
 
 <template>
   <section class="prode">
-    <h1>Prode</h1>
-
-    <p class="descripcion">
-      Carga tus predicciones para los partidos disponibles.
-    </p>
+    <div class="encabezado">
+      <p class="subtitulo">Mundial 2026</p>
+      <h1>Prode</h1>
+      <p class="descripcion">
+        Elegi un partido, carga tu resultado y guarda tu prediccion.
+      </p>
+    </div>
 
     <div v-if="cargando" class="estado-vista">
       Cargando partidos...
@@ -179,172 +205,140 @@ onMounted(() => {
       {{ errorCarga }}
     </div>
 
-    <template v-else>
+    <div v-else>
       <form class="formulario" @submit.prevent="guardarPrediccion">
-        <label for="partido">Partido</label>
-        <select id="partido" v-model="prediccionForm.partidoId">
-          <option value="">Seleccione un partido</option>
+        <div class="bloque">
+          <h2>Partidos disponibles</h2>
 
-          <option
-            v-for="partido in partidosDisponibles"
-            :key="partido.id"
-            :value="partido.id"
-          >
-            {{ partido.equipoLocal }} vs {{ partido.equipoVisitante }} -
-            {{ formatearFecha(partido.fecha) }}
-          </option>
-        </select>
-
-        <div class="goles">
-          <div>
-            <label for="golesLocal">Goles local</label>
-            <input
-              id="golesLocal"
-              v-model.number="prediccionForm.golesLocal"
-              type="number"
-              min="0"
-            />
+          <div v-if="partidosDisponibles.length === 0" class="sin-predicciones">
+            No hay partidos disponibles para predecir.
           </div>
 
-    <div class="encabezado">
-      <div>
-        <p class="subtitulo">Mundial 2026</p>
-        <h1>Prode</h1>
-        <p class="descripcion">
-          Elegí un partido, cargá tu resultado y guardá tu predicción.
-        </p>
-      </div>
-    </div>
+          <div v-else class="partidos-grid">
+            <button
+              v-for="partido in partidosDisponibles"
+              :key="partido.id"
+              type="button"
+              class="partido-card"
+              :class="{ seleccionado: estaSeleccionado(partido.id) }"
+              @click="seleccionarPartido(partido.id)"
+            >
+              <div class="equipos">
+                <div class="equipo">
+                  <img
+                    class="bandera"
+                    :src="obtenerBanderaUrl(partido.equipoLocal)"
+                    :alt="partido.equipoLocal"
+                  />
+                  <span>{{ partido.equipoLocal }}</span>
+                </div>
 
-    <form class="formulario" @submit.prevent="guardarPrediccion">
-      <div class="bloque">
-        <h2>Partidos disponibles</h2>
+                <span class="versus">VS</span>
 
-        <div v-if="partidosDisponibles.length === 0" class="sin-predicciones">
-          No hay partidos disponibles para predecir.
-        </div>
+                <div class="equipo derecha">
+                  <span>{{ partido.equipoVisitante }}</span>
+                  <img
+                    class="bandera"
+                    :src="obtenerBanderaUrl(partido.equipoVisitante)"
+                    :alt="partido.equipoVisitante"
+                  />
+                </div>
+              </div>
 
-        <select v-model="prediccionForm.partidoId">
-          <option
-            v-for="partido in partidosDisponibles"
-            :key="partido.id"
-            :value="partido.id"
-          >
-            {{ partido.equipoLocal }} vs {{ partido.equipoVisitante }} -
-            {{ formatearFecha(partido.fecha) }}
-          </option>
-        </select>
-
-        <div class="goles">
-          <div>
-            <label for="golesLocal">Goles local</label>
-            <input
-              id="golesLocal"
-              v-model.number="prediccionForm.golesLocal"
-              type="number"
-              min="0"
-            />
-          </div>
-
-          <div>
-            <label for="golesVisitante">Goles visitante</label>
-            <input
-              id="golesVisitante"
-              v-model.number="prediccionForm.golesVisitante"
-              type="number"
-              min="0"
-            />
+              <p class="fecha">
+                {{ formatearFecha(partido.fecha) }}
+              </p>
+            </button>
           </div>
         </div>
 
-        <button type="submit">
-          {{ prediccionEditandoId ? 'Guardar cambios' : 'Guardar prediccion' }}
-        </button>
+        <div class="bloque resultado">
+          <h2>
+            {{ prediccionEditandoId ? 'Editar prediccion' : 'Nueva prediccion' }}
+          </h2>
 
-        <button
-          v-if="prediccionEditandoId"
-          type="button"
-          class="secundario"
-          @click="limpiarFormulario"
-        >
-          Cancelar edicion
-        </button>
+          <label for="partido">Partido seleccionado</label>
+          <select id="partido" v-model="prediccionForm.partidoId">
+            <option value="">Seleccione un partido</option>
+            <option
+              v-for="partido in partidosDisponibles"
+              :key="partido.id"
+              :value="partido.id"
+            >
+              {{ partido.equipoLocal }} vs {{ partido.equipoVisitante }} -
+              {{ formatearFecha(partido.fecha) }}
+            </option>
+          </select>
+
+          <p v-if="partidoSeleccionado" class="partido-resumen">
+            {{ partidoSeleccionado.equipoLocal }} vs {{ partidoSeleccionado.equipoVisitante }}
+          </p>
+
+          <div class="goles">
+            <div>
+              <label for="golesLocal">Goles local</label>
+              <input
+                id="golesLocal"
+                v-model.number="prediccionForm.golesLocal"
+                type="number"
+                min="0"
+              />
+            </div>
+
+            <div>
+              <label for="golesVisitante">Goles visitante</label>
+              <input
+                id="golesVisitante"
+                v-model.number="prediccionForm.golesVisitante"
+                type="number"
+                min="0"
+              />
+            </div>
+          </div>
+
+          <div class="botones-formulario">
+            <button type="submit" class="principal">
+              {{ prediccionEditandoId ? 'Guardar cambios' : 'Guardar prediccion' }}
+            </button>
+
+            <button
+              v-if="prediccionEditandoId"
+              type="button"
+              class="secundario"
+              @click="limpiarFormulario"
+            >
+              Cancelar edicion
+            </button>
+          </div>
+        </div>
       </form>
 
       <p v-if="mensaje" class="mensaje">
         {{ mensaje }}
       </p>
 
-      <h2>Mis predicciones</h2>
+      <section class="mis-predicciones">
+        <h2>Mis predicciones</h2>
 
-      <div v-if="predicciones.length === 0" class="sin-predicciones">
-        Todavia no cargaste predicciones.
-      </div>
-
-        <div class="botones-formulario">
-          <button type="submit" class="principal">
-            {{ prediccionEditandoId ? 'Guardar cambios' : 'Guardar predicción' }}
-          </button>
-
-          <button
-            v-if="prediccionEditandoId"
-            type="button"
-            class="secundario"
-            @click="limpiarFormulario"
-          >
-            Cancelar edición
-          </button>
+        <div v-if="prediccionesConPartido.length === 0" class="sin-predicciones">
+          Todavia no cargaste predicciones.
         </div>
-      </div>
-    </form>
 
-    <p v-if="mensaje" class="mensaje">
-      {{ mensaje }}
-    </p>
-
-    <section class="mis-predicciones">
-      <h2>Mis predicciones</h2>
-
-      <div v-if="predicciones.length === 0" class="sin-predicciones">
-        Todavía no cargaste predicciones.
-      </div>
-
-      <div v-else class="lista">
-        <article
-          v-for="prediccion in predicciones"
-          :key="prediccion.id"
-          class="card"
-        >
-          <template v-if="obtenerPartidoPorId(prediccion.partidoId)">
-            <h3>
-              {{ obtenerPartidoPorId(prediccion.partidoId).equipoLocal }}
-              vs
-              {{ obtenerPartidoPorId(prediccion.partidoId).equipoVisitante }}
-            </h3>
-
-            <p>
-              Fecha:
-              {{ formatearFecha(obtenerPartidoPorId(prediccion.partidoId).fecha) }}
-            </p>
-
-            <p>
-              Prediccion:
-              {{ prediccion.golesLocal }} - {{ prediccion.golesVisitante }}
-            </p>
-
-            <div class="acciones">
-              <button type="button" @click="editarPrediccion(prediccion)">
+        <div v-else class="lista">
+          <article
+            v-for="prediccion in prediccionesConPartido"
+            :key="prediccion.id"
+            class="card"
+          >
             <div class="card-header">
               <div class="equipos">
                 <div class="equipo">
                   <img
                     class="bandera"
-                    :src="obtenerBanderaUrl(obtenerNombreLocal(obtenerPartidoPorId(prediccion.partidoId)))"
-                    :alt="obtenerNombreLocal(obtenerPartidoPorId(prediccion.partidoId))"
+                    :src="obtenerBanderaUrl(prediccion.partido.equipoLocal)"
+                    :alt="prediccion.partido.equipoLocal"
                   />
-                  <span>
-                    {{ obtenerNombreLocal(obtenerPartidoPorId(prediccion.partidoId)) }}
-                  </span>
+                  <span>{{ prediccion.partido.equipoLocal }}</span>
                 </div>
 
                 <span class="resultado-prediccion">
@@ -352,36 +346,41 @@ onMounted(() => {
                 </span>
 
                 <div class="equipo derecha">
-                  <span>
-                    {{ obtenerNombreVisitante(obtenerPartidoPorId(prediccion.partidoId)) }}
-                  </span>
+                  <span>{{ prediccion.partido.equipoVisitante }}</span>
                   <img
                     class="bandera"
-                    :src="obtenerBanderaUrl(obtenerNombreVisitante(obtenerPartidoPorId(prediccion.partidoId)))"
-                    :alt="obtenerNombreVisitante(obtenerPartidoPorId(prediccion.partidoId))"
+                    :src="obtenerBanderaUrl(prediccion.partido.equipoVisitante)"
+                    :alt="prediccion.partido.equipoVisitante"
                   />
                 </div>
               </div>
 
               <p class="fecha">
-                {{ formatearFecha(obtenerPartidoPorId(prediccion.partidoId).fecha) }}
+                {{ formatearFecha(prediccion.partido.fecha) }}
               </p>
             </div>
 
             <div class="acciones">
-              <button type="button" class="editar" @click="editarPrediccion(prediccion)">
+              <button
+                type="button"
+                class="editar"
+                @click="editarPrediccion(prediccion)"
+              >
                 Editar
               </button>
 
-              <button type="button" class="eliminar" @click="eliminarPrediccion(prediccion)">
+              <button
+                type="button"
+                class="eliminar"
+                @click="eliminarPrediccion(prediccion)"
+              >
                 Eliminar
               </button>
             </div>
-          </template>
-        </article>
-      </div>
-    </template>
-    </section>
+          </article>
+        </div>
+      </section>
+    </div>
   </section>
 </template>
 
@@ -533,7 +532,16 @@ h2 {
 .resultado {
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  gap: 1rem;
+}
+
+.partido-resumen {
+  margin: 0;
+  padding: 0.75rem;
+  border-radius: 12px;
+  background: rgba(37, 99, 235, 0.18);
+  color: #dbeafe;
+  font-weight: 700;
 }
 
 .goles {
@@ -554,7 +562,8 @@ label {
   font-size: 0.9rem;
 }
 
-input {
+input,
+select {
   width: 100%;
   padding: 0.75rem;
   border: 1px solid #475569;
@@ -565,7 +574,8 @@ input {
   outline: none;
 }
 
-input:focus {
+input:focus,
+select:focus {
   border-color: #60a5fa;
 }
 
@@ -573,7 +583,7 @@ input:focus {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
-  margin-top: 1.25rem;
+  margin-top: 0.25rem;
 }
 
 button {
