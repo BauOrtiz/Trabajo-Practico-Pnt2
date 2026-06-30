@@ -7,7 +7,7 @@
 
     const router = useRouter()
     const estaticoStore = useEstaticoStore()
-    const grupoSeleccionado = ref('todos')
+const etapaSeleccionada = ref('todos')
 
 
     // Navega al detalle del partido seleccionado
@@ -24,23 +24,53 @@
 
 )
 
-// Obtiene la lista de grupos disponibles para el filtro
-const grupos = computed(() => {
+function nombreFase(fase) {
+  const nombres = {
+    DIECISEISAVOS: 'Dieciseisavos',
+    OCTAVOS: 'Octavos',
+    CUARTOS: 'Cuartos de final',
+    SEMIFINAL: 'Semifinal',
+    TERCER_PUESTO: 'Tercer puesto',
+    FINAL: 'Final'
+  }
+
+  return nombres[fase] || fase
+}
+
+function claveEtapa(partido) {
+  return partido.grupoId ? `grupo:${partido.grupoId}` : `fase:${partido.fase}`
+}
+
+function nombreEtapa(partido) {
+  return partido.grupoId ? `Grupo ${partido.grupoId}` : nombreFase(partido.fase)
+}
+
+// Obtiene los grupos o fases disponibles para el filtro.
+const etapas = computed(() => {
   if (!estaticoStore.partidos || estaticoStore.partidos.length === 0) {
     return []
   }
-  const gruposUnicos = estaticoStore.partidos.map((partido) => partido.grupoId)
-  return [...new Set(gruposUnicos)].sort()
+
+  const opciones = new Map()
+  estaticoStore.partidos.forEach((partido) => {
+    opciones.set(claveEtapa(partido), nombreEtapa(partido))
+  })
+
+  return [...opciones].map(([valor, nombre]) => ({ valor, nombre }))
 })
 
-// Devuelve los partidos segun el grupo seleccionado
+const mostrandoFaseGrupos = computed(() => {
+  return estaticoStore.partidos.some((partido) => Boolean(partido.grupoId))
+})
+
+// Devuelve los partidos segun el grupo o fase seleccionada.
 const partidosFiltrados = computed(() => {
-  if (grupoSeleccionado.value === 'todos') {
+  if (etapaSeleccionada.value === 'todos') {
     return estaticoStore.partidos
   }
 
   return estaticoStore.partidos.filter(
-    (partido) => partido.grupoId === grupoSeleccionado.value,
+    (partido) => claveEtapa(partido) === etapaSeleccionada.value,
   )
 })
 
@@ -75,10 +105,14 @@ function mostrarEstado(partido) {
         <p>Fixture del Mundial 2026</p>
       </div>
 
-      <select v-model="grupoSeleccionado" class="filtro-grupo">
+      <select
+        v-if="mostrandoFaseGrupos"
+        v-model="etapaSeleccionada"
+        class="filtro-grupo"
+      >
         <option value="todos">Todos los grupos</option>
-        <option v-for="grupo in grupos" :key="grupo" :value="grupo">
-          Grupo {{ grupo }}
+        <option v-for="etapa in etapas" :key="etapa.valor" :value="etapa.valor">
+          {{ etapa.nombre }}
         </option>
       </select>
     </section>
@@ -102,7 +136,7 @@ function mostrarEstado(partido) {
         style="cursor: pointer;"
       >
         <div class="datos-superiores">
-          <span class="grupo">Grupo {{ partido.grupoId }}</span>
+          <span class="grupo">{{ nombreEtapa(partido) }}</span>
           <span class="estado">{{ mostrarEstado(partido) }}</span>
         </div>
 

@@ -1,4 +1,5 @@
 const API_URL = 'https://www.mockachino.com/603fe2b3-50c8-44/partidos'
+const API_ELIMINATORIAS_URL = 'https://www.mockachino.com/603fe2b3-50c8-44/partidos-eliminatorias'
 
 function normalizarPartido(partido, index) {
   return {
@@ -10,13 +11,14 @@ function normalizarPartido(partido, index) {
     golesVisitante: partido.resultadoReal?.golesVisitante ?? 0,
     fecha: partido.fechaHora,
     fechaTorneo: partido.fechaTorneo,
+    fase: partido.fase || 'FASE_GRUPOS',
     estado: partido.estado?.toLowerCase() ?? 'programado',
     partidoOriginal: partido
   }
 }
 
-export async function obtenerPartidos() {
-  const respuesta = await fetch(API_URL,{
+async function obtenerPartidosDesde(url) {
+  const respuesta = await fetch(url,{
     method: 'GET',
     headers: { 'Accept': 'application/json' }
   })
@@ -28,6 +30,14 @@ export async function obtenerPartidos() {
   const data = await respuesta.json()
   const partidos = data.partidos ?? []
   return partidos.map(normalizarPartido)
+}
+
+export function obtenerPartidos() {
+  return obtenerPartidosDesde(API_URL)
+}
+
+export function obtenerPartidosEliminatorias() {
+  return obtenerPartidosDesde(API_ELIMINATORIAS_URL)
 }
 
 const API_SELECCIONES = 'https://www.mockachino.com/603fe2b3-50c8-44/selecciones'

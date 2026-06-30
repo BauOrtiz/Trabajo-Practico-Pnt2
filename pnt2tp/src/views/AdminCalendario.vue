@@ -24,6 +24,7 @@ const partidoSeleccionado = computed(() => {
 
 const cargando = computed(() => estaticoStore.loading && estaticoStore.partidos.length === 0)
 const error = computed(() => estaticoStore.errores.partidos || '')
+const finalizandoGrupos = ref(false)
 
 watch(
   partidos,
@@ -108,6 +109,40 @@ function revertirPartidoSeleccionado() {
   mensaje.value = 'Cambio revertido para el partido seleccionado.'
 }
 
+async function finalizarFaseGrupos() {
+  mensaje.value = ''
+
+  if (!authStore.isAdmin) {
+    mensaje.value = 'Solo los administradores pueden finalizar la fase de grupos.'
+    return
+  }
+
+  finalizandoGrupos.value = true
+
+  try {
+    await estaticoStore.finalizarPartidosFaseGrupos()
+    partidoId.value = estaticoStore.partidos[0]?.id || ''
+    mensaje.value = 'Fase de grupos finalizada. Ya se muestran los partidos eliminatorios.'
+  } catch {
+    mensaje.value = 'La fase de grupos se finalizó, pero no se pudieron cargar las eliminatorias.'
+  } finally {
+    finalizandoGrupos.value = false
+  }
+}
+
+function restablecerFaseGrupos() {
+  mensaje.value = ''
+
+  if (!authStore.isAdmin) {
+    mensaje.value = 'Solo los administradores pueden restablecer la fase de grupos.'
+    return
+  }
+
+  estaticoStore.restablecerFaseGrupos()
+  partidoId.value = estaticoStore.partidos[0]?.id || ''
+  mensaje.value = 'Fase de grupos restablecida correctamente.'
+}
+
 onMounted(() => {
   estaticoStore.cargarDatosMundial()
 })
@@ -138,6 +173,41 @@ onMounted(() => {
     </section>
 
     <section v-else class="panel-admin">
+      <div v-if="!estaticoStore.faseGruposFinalizada" class="accion-fase">
+        <div>
+          <h2>Finalizar fase de grupos</h2>
+          <p>
+            Marca todos los partidos de grupos como finalizados y habilita las eliminatorias.
+          </p>
+        </div>
+
+        <button
+          type="button"
+          class="finalizar-fase"
+          :disabled="finalizandoGrupos"
+          @click="finalizarFaseGrupos"
+        >
+          {{ finalizandoGrupos ? 'Finalizando...' : 'Finalizar todos los partidos' }}
+        </button>
+      </div>
+
+      <div v-if="estaticoStore.gruposFinalizadosPorAdmin" class="accion-fase accion-fase--restablecer">
+        <div>
+          <h2>Restablecer fase de grupos</h2>
+          <p>
+            Recupera los estados originales y vuelve a mostrar los partidos de grupos.
+          </p>
+        </div>
+
+        <button
+          type="button"
+          class="restablecer-fase"
+          @click="restablecerFaseGrupos"
+        >
+          Restablecer fase de grupos
+        </button>
+      </div>
+
       <form class="formulario" @submit.prevent="guardarFecha">
         <label for="partido">Partido</label>
         <select id="partido" v-model="partidoId">
@@ -240,6 +310,65 @@ onMounted(() => {
 .panel-admin {
   display: grid;
   gap: 16px;
+}
+
+.accion-fase {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 20px;
+  border: 1px solid #92400e;
+  border-radius: 8px;
+  background: #451a03;
+}
+
+.accion-fase h2 {
+  margin: 0 0 6px;
+  font-size: 1.15rem;
+}
+
+.accion-fase p {
+  margin: 0;
+  color: #fed7aa;
+}
+
+.finalizar-fase {
+  flex-shrink: 0;
+  padding: 12px 14px;
+  border: 0;
+  border-radius: 8px;
+  color: white;
+  background: #c2410c;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 800;
+}
+
+.finalizar-fase:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.accion-fase--restablecer {
+  border-color: #1d4ed8;
+  background: #172554;
+}
+
+.accion-fase--restablecer p {
+  color: #bfdbfe;
+}
+
+.restablecer-fase {
+  flex-shrink: 0;
+  padding: 12px 14px;
+  border: 0;
+  border-radius: 8px;
+  color: white;
+  background: #2563eb;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 800;
 }
 
 .formulario {
@@ -363,6 +492,11 @@ input {
 }
 
 @media (max-width: 640px) {
+  .accion-fase {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
   .equipos {
     grid-template-columns: 1fr;
     text-align: center;
