@@ -148,6 +148,7 @@ onMounted(async () => {
           <!-- Datos del usuario logueado y puntos actuales del Prode. -->
           <section v-if="authStore.isLoggedIn" class="user-summary">
             <p class="user-name">{{ nombreUsuario }}</p>
+            <p class="user-role">{{ authStore.nombreRol }}</p>
             <p class="user-points">{{ puntosProde }} puntos</p>
           </section>
 
@@ -359,6 +360,17 @@ onMounted(async () => {
   color: #93c5fd;
   font-size: 0.95rem;
   font-weight: 700;
+}
+
+.user-role {
+  display: inline-flex;
+  margin: 0 0 8px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  color: #dbeafe;
+  background: #2563eb;
+  font-size: 0.75rem;
+  font-weight: 800;
 }
 
 .side-menu-close {
