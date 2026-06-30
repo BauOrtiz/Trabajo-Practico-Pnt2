@@ -2,9 +2,15 @@
 import imagenInicio from '@/assets/img/prode-mundial-2026.png'
 import { useProximosPartidos } from '../composables/Composable-Home.js'
 import { obtenerBanderaUrl } from '../utils/banderas.js'
+import { useRouter } from 'vue-router'
 
 const { cargando, error, proximosPartidos, partidosPorDia, formatearHora } = useProximosPartidos()
 
+const router = useRouter() 
+// Navega al detalle del partido seleccionado
+function irAlDetalle(id) {
+router.push(`/partido/${id}`)
+}
 </script>
 
 <template>
@@ -36,7 +42,12 @@ const { cargando, error, proximosPartidos, partidosPorDia, formatearHora } = use
         <div v-for="(partidosDia, dia) in partidosPorDia" :key="dia" class="grupo-dia">
           <div class="fecha-header"> {{ dia }}</div>
 
-          <article v-for="partido in partidosDia" :key="partido.id" class="card">
+          <article 
+              v-for="partido in partidosDia" 
+              :key="partido.id" 
+              class="card" 
+              @click="irAlDetalle(partido.id)"
+            >
             <div class="hora">
               <span>🕐</span>
               <span>{{ formatearHora(partido.fecha) }}</span>
