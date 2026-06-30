@@ -1,11 +1,21 @@
 import { defineStore } from 'pinia'
-import { obtenerEstadios, obtenerPartidos, obtenerSelecciones } from '@/services/partidosService'
 import {
+  obtenerEstadios,
+  obtenerPartidos,
+  obtenerPartidosEliminatorias,
+  obtenerSelecciones
+} from '@/services/partidosService'
+import {
+  aplicarEstadoFaseGrupos,
   aplicarCambiosFechaPartidos,
   eliminarCambioFechaPartido,
   eliminarCambiosFechaPartidos,
-  guardarCambioFechaPartido
+  eliminarFaseGruposFinalizada,
+  faseGruposFinalizadaPorAdmin,
+  guardarCambioFechaPartido,
+  guardarFaseGruposFinalizada
 } from '@/services/calendarioAdminService'
+import { obtenerEstadoPartido } from '@/utils/estadoPartido'
 
 function crearErroresVacios() {
   return {
@@ -22,6 +32,9 @@ function tieneDatosCompletos(store) {
 export const useEstaticoStore = defineStore('estatico', {
   state: () => ({
     partidos: [],
+    partidosFaseGrupos: [],
+    partidosEliminatorias: [],
+    gruposFinalizadosPorAdmin: faseGruposFinalizadaPorAdmin(),
     estadios: [],
     selecciones: [],
     cargado: false,
@@ -34,7 +47,13 @@ export const useEstaticoStore = defineStore('estatico', {
     tieneError: (state) => Boolean(state.error),
     huboErrorEnPartidos: (state) => Boolean(state.errores.partidos),
     huboErrorEnEstadios: (state) => Boolean(state.errores.estadios),
-    huboErrorEnSelecciones: (state) => Boolean(state.errores.selecciones)
+    huboErrorEnSelecciones: (state) => Boolean(state.errores.selecciones),
+    faseGruposFinalizada: (state) => (
+      state.partidosFaseGrupos.length > 0 &&
+      state.partidosFaseGrupos.every(
+        (partido) => obtenerEstadoPartido(partido) === 'finalizado'
+      )
+    )
   },
 
   actions: {
@@ -73,16 +92,60 @@ export const useEstaticoStore = defineStore('estatico', {
     },
 
     async cargarPartidos() {
-      if (this.partidos.length > 0) return
+      if (this.partidosFaseGrupos.length > 0) return
 
       this.errores.partidos = ''
 
       try {
         const partidos = await obtenerPartidos()
-        this.partidos = aplicarCambiosFechaPartidos(partidos)
+        this.partidosFaseGrupos = aplicarEstadoFaseGrupos(
+          aplicarCambiosFechaPartidos(partidos)
+        )
+        this.partidos = this.partidosFaseGrupos
       } catch {
-        this.errores.partidos = 'No se pudieron cargar los partidos.'
+        this.errores.partidos = 'No se pudieron cargar los partidos de fase de grupos.'
+        return
       }
+
+      if (this.faseGruposFinalizada) {
+        try {
+          await this.cargarPartidosEliminatorias()
+        } catch {
+          // Si falla la segunda API, conservamos los grupos para no dejar la app vacia.
+          this.partidos = this.partidosFaseGrupos
+        }
+      }
+    },
+
+    async cargarPartidosEliminatorias() {
+      if (this.partidosEliminatorias.length === 0) {
+        const partidos = await obtenerPartidosEliminatorias()
+        this.partidosEliminatorias = aplicarCambiosFechaPartidos(partidos)
+      }
+
+      this.partidos = this.partidosEliminatorias
+    },
+
+    async finalizarPartidosFaseGrupos() {
+      // Primero comprobamos que la fase siguiente se pueda cargar. Solo entonces
+      // persistimos el cambio para no dejar la aplicacion en un estado roto.
+      await this.cargarPartidosEliminatorias()
+      guardarFaseGruposFinalizada()
+      this.gruposFinalizadosPorAdmin = true
+      this.partidosFaseGrupos = aplicarEstadoFaseGrupos(this.partidosFaseGrupos)
+    },
+
+    restablecerFaseGrupos() {
+      eliminarFaseGruposFinalizada()
+      this.gruposFinalizadosPorAdmin = false
+
+      this.partidosFaseGrupos = this.partidosFaseGrupos.map((partido) => ({
+        ...partido,
+        estado: partido.partidoOriginal?.estado?.toLowerCase() || 'programado',
+        finalizadoPorAdmin: false
+      }))
+
+      this.partidos = this.partidosFaseGrupos
     },
 
     actualizarFechaPartido(partidoId, nuevaFecha) {
@@ -125,6 +188,8 @@ export const useEstaticoStore = defineStore('estatico', {
     restaurarFechasPartidos() {
       eliminarCambiosFechaPartidos()
       this.partidos = []
+      this.partidosFaseGrupos = []
+      this.partidosEliminatorias = []
       return this.cargarPartidos()
     },
 

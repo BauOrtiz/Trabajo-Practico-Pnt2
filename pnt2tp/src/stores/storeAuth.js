@@ -79,7 +79,7 @@ export const useAuthStore = defineStore('auth', {
 
         if (adminHardcodeado) {
           if (adminHardcodeado.password !== password) {
-            throw new Error('Contrasenia incorrecta.')
+            throw new Error('Contraseña incorrecta.')
           }
 
           guardarSesion(this, adminHardcodeado)
@@ -102,7 +102,7 @@ export const useAuthStore = defineStore('auth', {
         }
 
         if (usuarioBuscado.password !== password) {
-          throw new Error('Contrasenia incorrecta.')
+          throw new Error('Contraseña incorrecta.')
         }
 
         guardarSesion(this, usuarioBuscado)
