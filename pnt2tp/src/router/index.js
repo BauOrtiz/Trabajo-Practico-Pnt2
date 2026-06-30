@@ -39,11 +39,7 @@ const routes = [
          name: 'Perfil',
          component: () => import('../views/Perfil.vue')
     },
-    {
-        path: '/:pathMatch(.*)*',
-        name: 'NotFound',
-        component: NotFound
-    },
+    
      {
         path: '/registro',
         name: 'Registro',
@@ -112,6 +108,14 @@ const routes = [
         path: '/paises/:id',
         name: 'Pais',
         component: Pais
+    },
+
+//NotFound:
+
+    {
+        path: '/:pathMatch(.*)*',
+        name: 'NotFound',
+        component: NotFound
     }
 
 
