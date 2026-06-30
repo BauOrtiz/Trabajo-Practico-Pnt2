@@ -93,6 +93,87 @@ export const useAuthStore = defineStore('auth', {
     logout() {
       this.user = null
       localStorage.removeItem('prode_user')
+    },
+
+    async actualizarPerfil(datosActualizados) {
+    this.loading = true
+    this.error = null
+
+    try {
+    if (!this.user?.id) {
+      throw new Error('No hay un usuario logueado.')
     }
+
+    const response = await fetch(`${API_USUARIOS}/${this.user.id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        ...this.user,
+        ...datosActualizados
+      })
+    })
+
+    if (!response.ok) {
+      throw new Error('No se pudieron actualizar los datos del perfil.')
+    }
+
+    const usuarioActualizado = await response.json()
+
+    this.user = usuarioActualizado
+    localStorage.setItem('prode_user', JSON.stringify(usuarioActualizado))
+
+    return true
+  } catch (err) {
+    this.error = err.message || 'Error al actualizar el perfil.'
+    return false
+  } finally {
+    this.loading = false
+  }
+},
+
+async cambiarPassword(passwordActual, passwordNueva) {
+  this.loading = true
+  this.error = null
+
+  try {
+    if (!this.user?.id) {
+      throw new Error('No hay un usuario logueado.')
+    }
+
+    if (this.user.password !== passwordActual) {
+      throw new Error('La contraseña actual no es correcta.')
+    }
+
+    const response = await fetch(`${API_USUARIOS}/${this.user.id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        ...this.user,
+        password: passwordNueva
+      })
+    })
+
+    if (!response.ok) {
+      throw new Error('No se pudo cambiar la contraseña.')
+    }
+
+    const usuarioActualizado = await response.json()
+
+    this.user = usuarioActualizado
+    localStorage.setItem('prode_user', JSON.stringify(usuarioActualizado))
+
+    return true
+  } catch (err) {
+    this.error = err.message || 'Error al cambiar la contraseña.'
+    return false
+  } finally {
+    this.loading = false
+  }
+}
+
   }
 })
