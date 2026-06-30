@@ -38,7 +38,7 @@ const routes = [
     {
         path: '/perfil',
          name: 'Perfil',
-         component: () => import('../views/Perfil.vue')
+         component: Perfil
     },
     
      {

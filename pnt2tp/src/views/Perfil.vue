@@ -1,8 +1,10 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/storeAuth'
 
 const authStore = useAuthStore()
+const router = useRouter()
 
 const nombre = ref('')
 const apellido = ref('')
@@ -18,14 +20,28 @@ const mensajeError = ref('')
 
 const usuarioLogueado = computed(() => authStore.user)
 
-onMounted(() => {
+function cargarDatosPerfil() {
   if (authStore.user) {
     nombre.value = authStore.user.nombre || ''
     apellido.value = authStore.user.apellido || ''
     edad.value = authStore.user.edad || ''
     email.value = authStore.user.email || ''
   }
+}
+
+onMounted(() => {
+  if (!authStore.isLoggedIn) {
+    router.push('/home?login=1')
+    return
+  }
+
+  cargarDatosPerfil()
 })
+
+watch(
+  () => authStore.user?.id,
+  cargarDatosPerfil
+)
 
 const puedeGuardarPerfil = computed(() => {
   return nombre.value.trim() !== '' && email.value.trim() !== ''
@@ -205,10 +221,17 @@ async function guardarNuevaPassword() {
       </section>
     </section>
 
-    <section v-else class="perfil-card">
+    <section v-else-if="!usuarioLogueado" class="perfil-card">
       <h1>No hay usuario logueado</h1>
       <p class="descripcion">
         Para ver tu perfil, primero tenés que iniciar sesión.
+      </p>
+    </section>
+
+    <section v-if="false" class="perfil-card">
+      <h1>Perfil no disponible</h1>
+      <p class="descripcion">
+        Solo podés ver y editar tu propio perfil.
       </p>
     </section>
   </main>
