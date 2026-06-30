@@ -1,13 +1,14 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue'
-
-import { obtenerPartidos } from '../services/partidosService'
-import {guardarPredicciones, obtenerPredicciones } from '../services/prediccionesService'
+import { computed, onMounted, ref, watch } from 'vue'
+import { useAuthStore } from '../stores/storeAuth'
+import { guardarPredicciones, obtenerPredicciones } from '../services/prediccionesService'
+import { useEstaticoStore } from '../stores/storeEstaticos'
 import { obtenerEstadoPartido } from '../utils/estadoPartido.js'
 import { obtenerBanderaUrl } from '../utils/banderas.js'
 
-const partidos = ref([])
+const estaticoStore = useEstaticoStore()
 const predicciones = ref([])
+const authStore = useAuthStore()
 
 const prediccionForm = ref({
   partidoId: '',
@@ -18,9 +19,9 @@ const prediccionForm = ref({
 const prediccionEditandoId = ref(null)
 const mensaje = ref('')
 
-async function cargarPartidos() {
-  partidos.value = await obtenerPartidos()
-}
+const partidos = computed(() => estaticoStore.partidos)
+const cargando = computed(() => estaticoStore.loading && partidos.value.length === 0)
+const errorCarga = computed(() => estaticoStore.errores.partidos || '')
 
 const partidosDisponibles = computed(() => {
   return partidos.value.filter((partido) => partidoDisponible(partido))
@@ -31,12 +32,21 @@ function partidoDisponible(partido) {
 }
 
 function obtenerPartidoPorId(partidoId) {
-  return partidos.value.find((partido) => String(partido.id) === String(partidoId))
+  return estaticoStore.obtenerPartidoPorId(partidoId)
 }
 
 function cargarDesdeLocalStorage() {
-  predicciones.value = obtenerPredicciones()
+  predicciones.value = obtenerPredicciones(authStore.user?.id)
 }
+
+watch(
+  () => authStore.user?.id,
+  () => {
+    cargarDesdeLocalStorage()
+    limpiarFormulario()
+    mensaje.value = ''
+  }
+)
 
 function limpiarFormulario() {
   prediccionForm.value = {
@@ -50,6 +60,11 @@ function limpiarFormulario() {
 
 function guardarPrediccion() {
   mensaje.value = ''
+
+  if (!authStore.user?.id) {
+    mensaje.value = 'Debe iniciar sesion para guardar una prediccion.'
+    return
+  }
 
   const partido = obtenerPartidoPorId(prediccionForm.value.partidoId)
 
@@ -79,42 +94,40 @@ function guardarPrediccion() {
       prediccion.golesVisitante = Number(prediccionForm.value.golesVisitante)
     }
 
-    mensaje.value = 'Predicción editada correctamente.'
+    mensaje.value = 'Prediccion editada correctamente.'
   } else {
     const yaExistePrediccion = predicciones.value.some(
       (item) => String(item.partidoId) === String(prediccionForm.value.partidoId)
     )
 
     if (yaExistePrediccion) {
-      mensaje.value = 'Ya existe una predicción para este partido.'
+      mensaje.value = 'Ya existe una prediccion para este partido.'
       return
     }
 
-    const nuevaPrediccion = {
+    predicciones.value.push({
       id: Date.now(),
       partidoId: prediccionForm.value.partidoId,
       golesLocal: Number(prediccionForm.value.golesLocal),
       golesVisitante: Number(prediccionForm.value.golesVisitante)
-    }
+    })
 
-    predicciones.value.push(nuevaPrediccion)
-    mensaje.value = 'Predicción guardada correctamente.'
+    mensaje.value = 'Prediccion guardada correctamente.'
   }
 
-  guardarPredicciones(predicciones.value)
+  guardarPredicciones(predicciones.value, authStore.user.id)
   limpiarFormulario()
 }
 
 function editarPrediccion(prediccion) {
   const partido = obtenerPartidoPorId(prediccion.partidoId)
 
-  if (!partidoDisponible(partido)) {
-    mensaje.value = 'No se puede editar una predicción de un partido ya iniciado o finalizado.'
+  if (!partido || !partidoDisponible(partido)) {
+    mensaje.value = 'No se puede editar una prediccion de un partido ya iniciado o finalizado.'
     return
   }
 
   prediccionEditandoId.value = prediccion.id
-
   prediccionForm.value = {
     partidoId: prediccion.partidoId,
     golesLocal: prediccion.golesLocal,
@@ -127,14 +140,14 @@ function editarPrediccion(prediccion) {
 function eliminarPrediccion(prediccion) {
   const partido = obtenerPartidoPorId(prediccion.partidoId)
 
-  if (!partidoDisponible(partido)) {
-    mensaje.value = 'No se puede eliminar una predicción de un partido ya iniciado o finalizado.'
+  if (!partido || !partidoDisponible(partido)) {
+    mensaje.value = 'No se puede eliminar una prediccion de un partido ya iniciado o finalizado.'
     return
   }
 
   predicciones.value = predicciones.value.filter((item) => item.id !== prediccion.id)
-  guardarPredicciones(predicciones.value)
-  mensaje.value = 'Predicción eliminada correctamente.'
+  guardarPredicciones(predicciones.value, authStore.user.id)
+  mensaje.value = 'Prediccion eliminada correctamente.'
 }
 
 function formatearFecha(fecha) {
@@ -144,14 +157,55 @@ function formatearFecha(fecha) {
   })
 }
 
-onMounted(async () => {
+onMounted(() => {
   cargarDesdeLocalStorage()
-  await cargarPartidos()
+  estaticoStore.cargarDatosMundial()
 })
 </script>
 
 <template>
   <section class="prode">
+    <h1>Prode</h1>
+
+    <p class="descripcion">
+      Carga tus predicciones para los partidos disponibles.
+    </p>
+
+    <div v-if="cargando" class="estado-vista">
+      Cargando partidos...
+    </div>
+
+    <div v-else-if="errorCarga" class="estado-vista estado-vista--error">
+      {{ errorCarga }}
+    </div>
+
+    <template v-else>
+      <form class="formulario" @submit.prevent="guardarPrediccion">
+        <label for="partido">Partido</label>
+        <select id="partido" v-model="prediccionForm.partidoId">
+          <option value="">Seleccione un partido</option>
+
+          <option
+            v-for="partido in partidosDisponibles"
+            :key="partido.id"
+            :value="partido.id"
+          >
+            {{ partido.equipoLocal }} vs {{ partido.equipoVisitante }} -
+            {{ formatearFecha(partido.fecha) }}
+          </option>
+        </select>
+
+        <div class="goles">
+          <div>
+            <label for="golesLocal">Goles local</label>
+            <input
+              id="golesLocal"
+              v-model.number="prediccionForm.golesLocal"
+              type="number"
+              min="0"
+            />
+          </div>
+
     <div class="encabezado">
       <div>
         <p class="subtitulo">Mundial 2026</p>
@@ -203,6 +257,30 @@ onMounted(async () => {
           </div>
         </div>
 
+        <button type="submit">
+          {{ prediccionEditandoId ? 'Guardar cambios' : 'Guardar prediccion' }}
+        </button>
+
+        <button
+          v-if="prediccionEditandoId"
+          type="button"
+          class="secundario"
+          @click="limpiarFormulario"
+        >
+          Cancelar edicion
+        </button>
+      </form>
+
+      <p v-if="mensaje" class="mensaje">
+        {{ mensaje }}
+      </p>
+
+      <h2>Mis predicciones</h2>
+
+      <div v-if="predicciones.length === 0" class="sin-predicciones">
+        Todavia no cargaste predicciones.
+      </div>
+
         <div class="botones-formulario">
           <button type="submit" class="principal">
             {{ prediccionEditandoId ? 'Guardar cambios' : 'Guardar predicción' }}
@@ -238,6 +316,24 @@ onMounted(async () => {
           class="card"
         >
           <template v-if="obtenerPartidoPorId(prediccion.partidoId)">
+            <h3>
+              {{ obtenerPartidoPorId(prediccion.partidoId).equipoLocal }}
+              vs
+              {{ obtenerPartidoPorId(prediccion.partidoId).equipoVisitante }}
+            </h3>
+
+            <p>
+              Fecha:
+              {{ formatearFecha(obtenerPartidoPorId(prediccion.partidoId).fecha) }}
+            </p>
+
+            <p>
+              Prediccion:
+              {{ prediccion.golesLocal }} - {{ prediccion.golesVisitante }}
+            </p>
+
+            <div class="acciones">
+              <button type="button" @click="editarPrediccion(prediccion)">
             <div class="card-header">
               <div class="equipos">
                 <div class="equipo">
@@ -284,6 +380,7 @@ onMounted(async () => {
           </template>
         </article>
       </div>
+    </template>
     </section>
   </section>
 </template>
@@ -324,6 +421,19 @@ h2 {
 .descripcion {
   margin: 0.5rem 0 0;
   color: #cbd5e1;
+}
+
+.estado-vista {
+  padding: 1rem;
+  border-radius: 12px;
+  background: #1f2937;
+  color: #e5e7eb;
+  text-align: center;
+}
+
+.estado-vista--error {
+  background: #7f1d1d;
+  color: white;
 }
 
 .formulario {

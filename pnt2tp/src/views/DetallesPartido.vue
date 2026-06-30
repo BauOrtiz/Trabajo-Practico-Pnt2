@@ -1,11 +1,14 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useEstaticoStore } from '../stores/storeEstaticos' // Usamos Pinia
+import { useAuthStore } from '../stores/storeAuth'
 import { guardarPrediccion, obtenerPredicciones } from '../services/prediccionesService'
+import { obtenerEstadoPartido } from '../utils/estadoPartido.js'
 
 const route = useRoute()
 const estaticoStore = useEstaticoStore()
+const authStore = useAuthStore()
 
 // 1. Convertimos el ID en reactivo para asegurar que Vue lo lea bien
 const partidoId = computed(() => route.params.id)
@@ -16,6 +19,27 @@ const error = ref('')
 
 const pronosticoLocal = ref(null)
 const pronosticoVisitante = ref(null)
+
+function cargarPronosticoDelUsuario() {
+  pronosticoLocal.value = null
+  pronosticoVisitante.value = null
+
+  if (!partido.value) return
+
+  const prediccionGuardada = obtenerPredicciones(authStore.user?.id).find(
+    (item) => String(item.partidoId) === String(partido.value.id)
+  )
+
+  if (prediccionGuardada) {
+    pronosticoLocal.value = prediccionGuardada.golesLocal
+    pronosticoVisitante.value = prediccionGuardada.golesVisitante
+  }
+}
+
+watch(
+  () => authStore.user?.id,
+  cargarPronosticoDelUsuario
+)
 
 const unformatedDate = (fechaStr) => {
   if (!fechaStr) return ''
@@ -33,27 +57,21 @@ onMounted(async () => {
     // Aseguramos que Pinia tenga los datos cargados sin pegarle a la API de nuevo
     await estaticoStore.cargarDatosMundial()
 
-    const partidos = estaticoStore.partidos
+    if (estaticoStore.errores.partidos) {
+      error.value = estaticoStore.errores.partidos
+      return
+    }
 
-    // 2. Buscamos el partido de forma segura usando el .value del computed
-    partido.value = partidos.find(p => p.id == partidoId.value)
+    partido.value = estaticoStore.obtenerPartidoPorId(partidoId.value)
 
     if (partido.value) {
       error.value = ''
-      // Buscamos si el usuario ya tenía un pronóstico guardado para este partido
-      const prediccionGuardada = obtenerPredicciones().find(
-        (item) => String(item.partidoId) === String(partido.value.id)
-      )
-      if (prediccionGuardada) {
-        pronosticoLocal.value = prediccionGuardada.golesLocal
-        pronosticoVisitante.value = prediccionGuardada.golesVisitante
-      }
+      cargarPronosticoDelUsuario()
     } else {
       error.value = "No se encontró el partido en la base de datos."
     }
-  } catch (err) {
-    console.error("Error al traer el partido:", err)
-    error.value = "Hubo un problema al cargar los datos."
+  } catch {
+    error.value = 'Hubo un problema al cargar los datos.'
   } finally {
     loading.value = false
   }
@@ -61,6 +79,11 @@ onMounted(async () => {
 
 // Función para procesar el prode
 const guardarPronostico = () => {
+  if (!authStore.user?.id) {
+    alert('Debe iniciar sesión para guardar una predicción.')
+    return
+  }
+
   if (pronosticoLocal.value === null || pronosticoVisitante.value === null) {
     alert('Por favor completa ambos resultados antes de guardar.')
     return 'todos'
@@ -71,17 +94,19 @@ const guardarPronostico = () => {
     return
   }
 
-  // 3. CORREGIDO: Usamos el estado normalizado que ya viene en el objeto
-  if (partido.value.estado !== 'programado') {
+  if (obtenerEstadoPartido(partido.value) !== 'programado') {
     alert('No se puede predecir un partido ya iniciado o finalizado.')
     return
   }
 
-  guardarPrediccion({
-    partidoId: partido.value.id,
-    golesLocal: pronosticoLocal.value,
-    golesVisitante: pronosticoVisitante.value
-  })
+  guardarPrediccion(
+    {
+      partidoId: partido.value.id,
+      golesLocal: pronosticoLocal.value,
+      golesVisitante: pronosticoVisitante.value
+    },
+    authStore.user.id
+  )
 
   alert(`Pronóstico guardado: ${partido.value.equipoLocal} ${pronosticoLocal.value} - ${pronosticoVisitante.value} ${partido.value.equipoVisitante}`)
 }
@@ -99,22 +124,22 @@ const guardarPronostico = () => {
       <div class="marcador">
         <div class="equipo">
           <h2>{{ partido.equipoLocal }}</h2>
-          <span v-if="partido.estado!=='finalizado'" class="goles">{{ partido.golesLocal }}</span>
+          <span v-if="obtenerEstadoPartido(partido) === 'finalizado'" class="goles">{{ partido.golesLocal }}</span>
         </div>
         
         <div class="vs">VS</div>
         
         <div class="equipo">
           <h2>{{ partido.equipoVisitante }}</h2>
-          <span v-if="partido.estado!=='finalizado'" class="goles">{{ partido.golesVisitante }}</span>
+          <span v-if="obtenerEstadoPartido(partido) === 'finalizado'" class="goles">{{ partido.golesVisitante }}</span>
         </div>
       </div>
 
       <div class="info-adicional">
-        <p><strong>Estado:</strong> <span class="estado-texto">{{ partido.estado }}</span></p>
+        <p><strong>Estado:</strong> <span class="estado-texto">{{ obtenerEstadoPartido(partido) }}</span></p>
       </div>
 
-      <div class="prode-section" v-if="partido.estado === 'programado'">
+      <div class="prode-section" v-if="obtenerEstadoPartido(partido) === 'programado'">
         <h3>Cargar mi Pronóstico</h3>
         <div class="prode-inputs">
           <input 
@@ -137,6 +162,10 @@ const guardarPronostico = () => {
           Confirmar Pronóstico
         </button>
       </div>
+    </div>
+
+    <div v-else-if="error" class="error">
+      {{ error }}
     </div>
 
     <div v-else class="error">

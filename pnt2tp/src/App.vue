@@ -3,9 +3,8 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import Login from './views/Login.vue'
 import { useAuthStore } from './stores/storeAuth'
-import { obtenerPartidos } from './services/partidosService'
 import { obtenerPredicciones } from './services/prediccionesService'
-import { calcularPuntosProde } from './utils/puntuacionProde'
+import { calcularPuntosDesdePredicciones } from './services/puntosService'
 import { useEstaticoStore } from './stores/storeEstaticos'
 
 const authStore = useAuthStore()
@@ -13,7 +12,6 @@ const storeEstaticos = useEstaticoStore()
 const router = useRouter()
 const mostrarLogin = ref(false)
 const mostrarMenu = ref(false)
-const partidos = ref([])
 const predicciones = ref([])
 
 // Lista de rutas que se muestran en el menu lateral y en la navbar oculta.
@@ -33,7 +31,7 @@ const nombreUsuario = computed(() => {
 
 // Calcula los puntos del usuario comparando sus predicciones contra resultados reales.
 const puntosProde = computed(() => {
-  return calcularPuntosProde(predicciones.value, partidos.value)
+  return calcularPuntosDesdePredicciones(predicciones.value, storeEstaticos.partidos)
 })
 
 // Abre el modal de login y cierra el menu lateral si estaba abierto.
@@ -47,10 +45,9 @@ function cerrarLogin() {
   mostrarLogin.value = false
 }
 
-// Abre el panel de usuario y actualiza predicciones/partidos antes de mostrarlo.
+// Abre el panel de usuario y actualiza predicciones antes de mostrarlo.
 async function abrirMenu() {
   cargarPredicciones()
-  await cargarPartidos()
   mostrarMenu.value = true
 }
 
@@ -69,27 +66,18 @@ function navegarDesdeMenu(ruta) {
   cerrarMenu()
 }
 
-
 function cargarPredicciones() {
-  predicciones.value = obtenerPredicciones()
+  predicciones.value = obtenerPredicciones(authStore.user?.id)
 }
 
-// Trae los partidos desde la API para poder calcular puntos reales del Prode.
-async function cargarPartidos() {
-  if (partidos.value.length > 0) return
-
-  try {
-    partidos.value = await obtenerPartidos()
-  } catch (error) {
-    partidos.value = []
-  }
-}
 
 // Si el login fue correcto, cierra automaticamente el modal de login.
 watch(
-  () => authStore.isLoggedIn,
-  (estaLogueado) => {
-    if (estaLogueado) {
+  () => authStore.user?.id,
+  (usuarioId) => {
+    cargarPredicciones()
+
+    if (usuarioId) {
       cerrarLogin()
     }
   }
@@ -98,7 +86,6 @@ watch(
 // Carga datos iniciales cuando se monta la app.
 onMounted(async () => {
   cargarPredicciones()
-  storeEstaticos.cargarDatosMundial()  
 })
 </script>
 

@@ -21,31 +21,28 @@ export const useAuthStore = defineStore('auth', {
       this.error = null
       
       try {
-        // Buscamos en MockAPI el usuario que coincida con el email
         const response = await fetch(`${API_USUARIOS}?email=${email}`)
+        if (!response.ok) {
+          throw new Error('No se pudo conectar con el servidor de usuarios.')
+        }
+
         const data = await response.json()
 
         const users = Array.isArray(data) ? data : [data]
-        console.log("Mail que ingresó el usuario en el formulario:", email)
-        console.log("Lista de usuarios que trajo la API:", users)
-        console.log("Primer mail guardado en la API:", users[0]?.email)
-        const usuarioBuscado= users.find(u=>u.email===email)
+        const usuarioBuscado = users.find((u) => u.email === email)
 
         if (!usuarioBuscado) {
           throw new Error('El usuario no existe.')
         }
 
-
-        // Validamos la contraseña (simulado)
         if (usuarioBuscado.password !== password) {
           throw new Error('Contraseña incorrecta.')
         }
 
-        // Si todo está ok, guardamos en el estado y en localStorage
         this.user = usuarioBuscado
         localStorage.setItem('prode_user', JSON.stringify(usuarioBuscado))
         
-        return true // Para avisarle al componente de Vue que redirija
+        return true
       } catch (err) {
         this.error = err.message || 'Error en el servidor.'
         return false
@@ -60,7 +57,7 @@ export const useAuthStore = defineStore('auth', {
       this.error = null
       try {
         const nuevoUsuario = {
-          nombre:nombre,
+          nombre: nombre,
           email: email,
           password: password,
           puntosTotales: 0
@@ -69,20 +66,20 @@ export const useAuthStore = defineStore('auth', {
         const response = await fetch(API_USUARIOS,{
             method:'POST',
             headers:{
-                'Content-Type': 'application/json' // Le avisamos al servidor que le mandamos un JSON
+                'Content-Type': 'application/json'
             },
             body: JSON.stringify(nuevoUsuario)
         })
         if (!response.ok) {
-        throw new Error('No se pudo guardar la predicción')
+          throw new Error('No se pudo registrar el usuario.')
         }
-        const datoGuardado = await response.json() // MockAPI te devuelve el objeto creado con su ID autogenerado
+        const datoGuardado = await response.json()
         
         this.user = datoGuardado
         localStorage.setItem('prode_user', JSON.stringify(datoGuardado))
         return true
       } catch (err) {
-        this.error = 'No se pudo registrar el usuario.'
+        this.error = err.message || 'No se pudo registrar el usuario.'
         return false
       } finally {
         this.loading = false

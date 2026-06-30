@@ -2,6 +2,8 @@
    import { ref, onMounted,computed } from 'vue'
     import { useRouter } from 'vue-router'
     import { useEstaticoStore } from '../stores/storeEstaticos'
+    import { obtenerEstadoPartido } from '../utils/estadoPartido.js'
+    import { obtenerBanderaUrl } from '../utils/banderas.js'
 
     const router = useRouter()
     const estaticoStore = useEstaticoStore()
@@ -15,7 +17,7 @@
  
 
     onMounted(async () => {
-            estaticoStore.cargarDatosMundial()
+            await estaticoStore.cargarDatosMundial()
     }
 
 
@@ -51,30 +53,17 @@ function formatearFecha(fecha) {
     timeStyle: 'short',
   })
 }
-// 1. CORREGIDO: Ya no necesitamos "obtenerEstadoPartido" porque usamos el estado normalizado
 function mostrarResultado(partido) {
-  if (partido.estado !== 'finalizado') {
+  if (obtenerEstadoPartido(partido) !== 'finalizado') {
     return 'vs'
   }
   return `${partido.golesLocal} - ${partido.golesVisitante}`
 }
 
-// 2. CORREGIDO: Devolvemos directamente el estado que ya viene en el partido
 function mostrarEstado(partido) {
-  return partido.estado || 'programado'
+  return obtenerEstadoPartido(partido)
 }
 
-// 3. CORREGIDO: Buscamos la bandera usando el ID o el nombre de forma flexible
-function obtenerBanderaUrl(equipoId) {
-  if (!estaticoStore.selecciones || estaticoStore.selecciones.length === 0) return ''
-  
-  // Buscamos coincidencia tanto por el ID (ej: "ARG") como por el nombre por las dudas
-  const pais = estaticoStore.selecciones.find(
-    s => s.id === equipoId || s.nombre === equipoId
-  )
-  
-  return pais ? pais.bandera : ''
-}
 </script>
 
 <template>
@@ -95,13 +84,12 @@ function obtenerBanderaUrl(equipoId) {
     </section>
 
     <!-- Cambiá "cargando" por "estaticoStore.loading" -->
-    <section v-if="estaticoStore.loading" class="mensaje">
+    <section v-if="estaticoStore.loading && estaticoStore.partidos.length === 0" class="mensaje">
       Cargando partidos...
     </section>
 
-    <!-- Cambiá "error" por "estaticoStore.error" -->
-    <section v-else-if="estaticoStore.error" class="mensaje error">
-      {{ estaticoStore.error }}
+    <section v-else-if="estaticoStore.errores.partidos" class="mensaje error">
+      {{ estaticoStore.errores.partidos }}
     </section>
 
     <section v-else class="contenedor-partidos">
