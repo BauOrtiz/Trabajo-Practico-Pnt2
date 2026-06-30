@@ -1,58 +1,62 @@
 <script setup>
-    import { ref } from 'vue'
-    import { useAuthStore } from '../stores/storeAuth'
-    import { useRouter } from 'vue-router'
+import { onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { useAuthStore } from '../stores/storeAuth'
 
-    const authStore = useAuthStore()
-    const router = useRouter()
+const authStore = useAuthStore()
+const router = useRouter()
+const emit = defineEmits(['registrarse'])
 
-    const email= ref('')
-    const contrasenia=ref('')
+const email = ref('')
+const contrasenia = ref('')
 
-    const loguearse= async()=>{
-        if(!email.value || !contrasenia.value){
-            return
-        }
+async function loguearse() {
+  if (!email.value || !contrasenia.value) {
+    return
+  }
 
-        const exitoso= await authStore.login(email.value,contrasenia.value)
+  const exitoso = await authStore.login(email.value, contrasenia.value)
 
-        if(exitoso){
-            router.push('/')
-        }
-    }
+  if (exitoso) {
+    router.push('/home')
+  }
+}
 
-    function registrarse(){
-        router.push('/registro')
-    }
+function registrarse() {
+  emit('registrarse')
+  router.push('/registro')
+}
 
+onMounted(() => {
+  if (authStore.isLoggedIn) {
+    router.push('/home')
+  }
+})
 </script>
 
 <template>
-    <h1>Log In</h1>
-    <form @submit.prevent="loguearse">
+  <h1>Log In</h1>
 
-        <div class="form-group">
-        <label>Email</label>
-        <input v-model="email" type="email" required placeholder="tu@email.com" />
-        </div>
+  <form @submit.prevent="loguearse">
+    <div class="form-group">
+      <label>Email</label>
+      <input v-model="email" type="email" required placeholder="tu@email.com" />
+    </div>
 
-        <div class="form-group">
-        <label>Contraseña</label>
-        <input v-model="contrasenia" type="password" required placeholder="******" />
-        </div>
+    <div class="form-group">
+      <label>Contraseña</label>
+      <input v-model="contrasenia" type="password" required placeholder="******" />
+    </div>
 
-        <p v-if="authStore.error" class="error-msg">{{ authStore.error }}</p>
+    <p v-if="authStore.error" class="error-msg">{{ authStore.error }}</p>
 
-         <button type="submit" :disabled="authStore.loading">
-            {{ authStore.loading ? 'Ingresando...' : 'Iniciar Sesión' }}
-         </button>
+    <button type="submit" :disabled="authStore.loading">
+      {{ authStore.loading ? 'Ingresando...' : 'Iniciar Sesión' }}
+    </button>
 
-        <a @click.prevent="registrarse()">Registrarse</a>
-
-    </form>
-
+    <a @click.prevent="registrarse">Registrarse</a>
+  </form>
 </template>
 
 <style scoped>
-
 </style>

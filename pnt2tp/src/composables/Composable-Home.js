@@ -1,38 +1,43 @@
-import { computed, onMounted, ref } from 'vue'
-import { obtenerPartidos2 } from '../services/partidosService'
+import { computed, onMounted } from 'vue'
+import { useEstaticoStore } from '../stores/storeEstaticos'
 
 export function useProximosPartidos() {
-  const partidos = ref([])
-  const cargando = ref(true)
-  const error = ref('')
+  const estaticoStore = useEstaticoStore()
 
   const proximosPartidos = computed(() => {
     const hoy = new Date()
     const enUnaSemana = new Date()
     enUnaSemana.setDate(hoy.getDate() + 7)
 
-    const estaEnLaSemana = (p) => {
-      const fecha = new Date(p.fechaHora)
-      return fecha >= hoy && fecha <= enUnaSemana
-    }
-
-    return partidos.value
-      .filter(estaEnLaSemana)
-      .sort((a, b) => new Date(a.fechaHora) - new Date(b.fechaHora))
+    return estaticoStore.partidos
+      .filter((partido) => {
+        const fecha = new Date(partido.fecha)
+        return fecha >= hoy && fecha <= enUnaSemana
+      })
+      .sort((a, b) => new Date(a.fecha) - new Date(b.fecha))
   })
 
   const partidosPorDia = computed(() => {
     const grupos = {}
+
     for (const partido of proximosPartidos.value) {
-      const dia = new Date(partido.fechaHora).toLocaleDateString('es-AR', {
+      const dia = new Date(partido.fecha).toLocaleDateString('es-AR', {
         day: 'numeric',
         month: 'long'
       })
-      if (!grupos[dia]) grupos[dia] = []
+
+      if (!grupos[dia]) {
+        grupos[dia] = []
+      }
+
       grupos[dia].push(partido)
     }
+
     return grupos
   })
+
+  const cargando = computed(() => estaticoStore.loading && estaticoStore.partidos.length === 0)
+  const error = computed(() => estaticoStore.errores.partidos || '')
 
   function formatearHora(fecha) {
     return new Date(fecha).toLocaleTimeString('es-AR', {
@@ -41,19 +46,11 @@ export function useProximosPartidos() {
     })
   }
 
-  onMounted(async () => {
-    try {
-      const data = await obtenerPartidos2()
-      partidos.value = data.partidos ?? []
-    } catch (e) {
-      error.value = 'No se pudieron cargar los próximos partidos.'
-    } finally {
-      cargando.value = false
-    }
+  onMounted(() => {
+    estaticoStore.cargarDatosMundial()
   })
 
   return {
-    partidos,
     cargando,
     error,
     proximosPartidos,

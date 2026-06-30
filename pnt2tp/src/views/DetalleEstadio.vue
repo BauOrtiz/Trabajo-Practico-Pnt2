@@ -1,31 +1,39 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { obtenerEstadios } from '../services/partidosService'
+import { useEstaticoStore } from '../stores/storeEstaticos'
 
 const route = useRoute()
 const router = useRouter()
 
-const estadioId = route.params.id
-const estadio = ref(null)
-const error = ref('')
+const estaticoStore = useEstaticoStore()
+const estadioId = computed(() => route.params.id)
 
 onMounted(async () => {
-  try {
-    const respuesta = await obtenerEstadios()
-    const estadios = respuesta.estadios ?? []
+estaticoStore.cargarDatosMundial()
+})
 
-    const estadioEncontrado = estadios.find(e => e.id === estadioId)
+const cargando = computed(() => estaticoStore.loading && estaticoStore.estadios.length === 0)
 
-    if (estadioEncontrado) {
-      estadio.value = estadioEncontrado
-    } else {
-      error.value = 'No se encontró el estadio en la base de datos.'
-    }
-  } catch (e) {
-    console.error(e)
-    error.value = 'No se pudo cargar el detalle del estadio.'
+const estadio = computed(() => {
+  if (!estaticoStore.estadios || estaticoStore.estadios.length === 0) {
+    return null
   }
+
+  return estaticoStore.obtenerEstadioPorId(estadioId.value)
+})
+
+
+const error = computed(() => {
+  if (estaticoStore.errores.estadios) {
+    return estaticoStore.errores.estadios
+  }
+
+  if (estaticoStore.cargado && !estadio.value) {
+    return 'No se encontró el estadio en la base de datos.'
+  }
+
+  return ''
 })
 
 function volverAEstadios() {
@@ -40,7 +48,7 @@ function volverAEstadios() {
       <button @click="volverAEstadios">Volver a estadios</button>
     </div>
 
-    <div v-else-if="!estadio" class="mensaje-cargando">
+    <div v-else-if="cargando || !estadio" class="mensaje-cargando">
       <h1>Cargando estadio...</h1>
     </div>
 

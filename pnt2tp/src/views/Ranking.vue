@@ -1,25 +1,29 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useAuthStore } from '../stores/storeAuth'
-import { obtenerPartidos } from '../services/partidosService'
+import { obtenerPredicciones } from '../services/prediccionesService'
+import { calcularTablaGrupo, obtenerGruposDisponibles } from '../services/grupoService'
+import { calcularUsuariosConPuntos } from '../services/puntosService'
+import { useEstaticoStore } from '../stores/storeEstaticos'
 import { obtenerBanderaUrl } from '../utils/banderas.js'
-import { obtenerEstadoPartido } from '../utils/estadoPartido.js'
 
 const authStore = useAuthStore()
+const estaticoStore = useEstaticoStore()
 
-const partidos = ref([])
 const predicciones = ref([])
 const grupoSeleccionado = ref('A')
-const cargando = ref(true)
-const error = ref('')
-
-// ─── RANKING AMIGOS ──────────────────────────────────────────────────────────
 const usuarios = ref([])
 const cargandoAmigos = ref(true)
+const errorAmigos = ref('')
 const API_USUARIOS = 'https://6a2b1b9ab687a7d5cbc4de36.mockapi.io/prode/Usuarios'
 
+const partidos = computed(() => estaticoStore.partidos)
+const cargando = computed(() => estaticoStore.loading && partidos.value.length === 0)
+const error = computed(() => estaticoStore.errores.partidos || '')
+
 const usuariosOrdenados = computed(() => {
-  return [...usuarios.value].sort((a, b) => (b.puntosTotales || 0) - (a.puntosTotales || 0))
+  const usuariosConPuntos = calcularUsuariosConPuntos(usuarios.value, partidos.value)
+  return [...usuariosConPuntos].sort((a, b) => (b.puntosTotales || 0) - (a.puntosTotales || 0))
 })
 
 function esUsuarioActual(usuario) {
@@ -28,7 +32,7 @@ function esUsuarioActual(usuario) {
 
 function iniciales(nombre) {
   if (!nombre) return '?'
-  return nombre.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+  return nombre.split(' ').map((parte) => parte[0]).join('').toUpperCase().slice(0, 2)
 }
 
 function medallaColor(pos) {
@@ -37,174 +41,40 @@ function medallaColor(pos) {
   if (pos === 2) return '#cd7f32'
   return '#555'
 }
-// ─────────────────────────────────────────────────────────────────────────────
 
-// Esta funcion agrega un id a cada partido si la API no lo trae.
-function normalizarPartidos(partidosData) {
-  return partidosData.map((partido, index) => ({
-    ...partido,
-    id: partido.id || index + 1
-  }))
-}
-
-// Esta funcion carga las predicciones guardadas en localStorage.
 function cargarPredicciones() {
-  const prediccionesGuardadas = localStorage.getItem('predicciones')
-  predicciones.value = prediccionesGuardadas ? JSON.parse(prediccionesGuardadas) : []
+  predicciones.value = obtenerPredicciones(authStore.user?.id)
 }
 
-// Esta funcion calcula los grupos disponibles
-const grupos = computed(() => {
-  const gruposUnicos = partidos.value
-    .map((partido) => partido.grupoId)
-    .filter((grupo) => grupo && grupo !== 'KO')
+watch(
+  () => authStore.user?.id,
+  cargarPredicciones
+)
 
-  return [...new Set(gruposUnicos)].sort()
-})
+const grupos = computed(() => obtenerGruposDisponibles(partidos.value))
 
-// Esta funcion filtra los partidos del grupo seleccionado
-const partidosDelGrupo = computed(() => {
-  return partidos.value.filter((partido) => partido.grupoId === grupoSeleccionado.value)
-})
+const rankingReal = computed(() =>
+  calcularTablaGrupo(partidos.value, grupoSeleccionado.value)
+)
 
-// Esta funcion ordena las predicciones por id de partido
-const prediccionesPorPartido = computed(() => {
-  return new Map(
-    predicciones.value.map((prediccion) => [
-      String(prediccion.partidoId),
-      prediccion
-    ])
-  )
-})
+const rankingApostado = computed(() =>
+  calcularTablaGrupo(partidos.value, grupoSeleccionado.value, predicciones.value)
+)
 
-// Esta funcion crea una fila inicial para un equipo
-function crearFila(equipo) {
-  return {
-    equipo,
-    jugados: 0,
-    ganados: 0,
-    empatados: 0,
-    perdidos: 0,
-    golesFavor: 0,
-    golesContra: 0,
-    diferencia: 0,
-    puntos: 0
-  }
-}
-
-// Esta funcion suma un resultado a la tabla de posiciones
-function sumarPartido(tabla, equipoLocal, equipoVisitante, golesLocal, golesVisitante) {
-  if (!tabla.has(equipoLocal)) tabla.set(equipoLocal, crearFila(equipoLocal))
-  if (!tabla.has(equipoVisitante)) tabla.set(equipoVisitante, crearFila(equipoVisitante))
-
-  const local = tabla.get(equipoLocal)
-  const visitante = tabla.get(equipoVisitante)
-
-  local.jugados += 1
-  visitante.jugados += 1
-  local.golesFavor += golesLocal
-  local.golesContra += golesVisitante
-  visitante.golesFavor += golesVisitante
-  visitante.golesContra += golesLocal
-
-  if (golesLocal > golesVisitante) {
-    local.ganados += 1
-    visitante.perdidos += 1
-    local.puntos += 3
-  } else if (golesLocal < golesVisitante) {
-    visitante.ganados += 1
-    local.perdidos += 1
-    visitante.puntos += 3
-  } else {
-    local.empatados += 1
-    visitante.empatados += 1
-    local.puntos += 1
-    visitante.puntos += 1
-  }
-
-  local.diferencia = local.golesFavor - local.golesContra
-  visitante.diferencia = visitante.golesFavor - visitante.golesContra
-}
-
-// Esta funcion ordena la tabla por puntos y diferencia de gol
-function ordenarTabla(tabla) {
-  return [...tabla.values()].sort((a, b) => {
-    if (b.puntos !== a.puntos) return b.puntos - a.puntos
-    if (b.diferencia !== a.diferencia) return b.diferencia - a.diferencia
-    if (b.golesFavor !== a.golesFavor) return b.golesFavor - a.golesFavor
-    return a.equipo.localeCompare(b.equipo)
-  })
-}
-
-// Esta funcion crea la tabla base con todos los equipos del grupo
-function crearTablaBase() {
-  const tabla = new Map()
-
-  for (const partido of partidosDelGrupo.value) {
-    if (!tabla.has(partido.equipoLocal)) tabla.set(partido.equipoLocal, crearFila(partido.equipoLocal))
-    if (!tabla.has(partido.equipoVisitante)) tabla.set(partido.equipoVisitante, crearFila(partido.equipoVisitante))
-  }
-
-  return tabla
-}
-
-// Esta funcion calcula el ranking con resultados reales
-const rankingReal = computed(() => {
-  const tabla = crearTablaBase()
-
-  for (const partido of partidosDelGrupo.value) {
-    if (obtenerEstadoPartido(partido) !== 'finalizado') continue
-
-    sumarPartido(
-      tabla,
-      partido.equipoLocal,
-      partido.equipoVisitante,
-      Number(partido.golesLocal),
-      Number(partido.golesVisitante)
-    )
-  }
-
-  return ordenarTabla(tabla)
-})
-
-// Esta funcion calcula el ranking con las predicciones del usuario
-const rankingApostado = computed(() => {
-  const tabla = crearTablaBase()
-
-  for (const partido of partidosDelGrupo.value) {
-    const prediccion = prediccionesPorPartido.value.get(String(partido.id))
-    if (!prediccion) continue
-
-    sumarPartido(
-      tabla,
-      partido.equipoLocal,
-      partido.equipoVisitante,
-      Number(prediccion.golesLocal),
-      Number(prediccion.golesVisitante)
-    )
-  }
-
-  return ordenarTabla(tabla)
-})
-
-// Esta funcion carga los datos al entrar a la pagina
 onMounted(async () => {
-  try {
-    cargarPredicciones()
-    partidos.value = await obtenerPartidos()
-  } catch (e) {
-    error.value = 'No se pudo cargar el ranking.'
-  } finally {
-    cargando.value = false
-  }
+  cargarPredicciones()
+  estaticoStore.cargarDatosMundial()
 
-  // Cargamos usuarios para el ranking de amigos
   try {
     const res = await fetch(API_USUARIOS)
+    if (!res.ok) {
+      throw new Error('No se pudo cargar la lista de usuarios.')
+    }
+
     const data = await res.json()
     usuarios.value = Array.isArray(data) ? data : []
-  } catch (e) {
-    console.error('No se pudieron cargar los amigos')
+  } catch (errorUsuarios) {
+    errorAmigos.value = 'No se pudo cargar el ranking de amigos.'
   } finally {
     cargandoAmigos.value = false
   }
@@ -258,17 +128,17 @@ onMounted(async () => {
             </tr>
           </thead>
           <tbody>
-            <tr v-for="(fila, index) in rankingReal" :key="fila.equipo">
+            <tr v-for="(fila, index) in rankingReal" :key="fila.nombre">
               <td>{{ index + 1 }}</td>
               <td class="equipo">
-                <img :src="obtenerBanderaUrl(fila.equipo)" :alt="fila.equipo" />
-                <span>{{ fila.equipo }}</span>
+                <img :src="obtenerBanderaUrl(fila.nombre)" :alt="fila.nombre" />
+                <span>{{ fila.nombre }}</span>
               </td>
               <td>{{ fila.jugados }}</td>
               <td>{{ fila.ganados }}</td>
               <td>{{ fila.empatados }}</td>
               <td>{{ fila.perdidos }}</td>
-              <td>{{ fila.diferencia }}</td>
+              <td>{{ fila.diferenciaGol }}</td>
               <td class="puntos">{{ fila.puntos }}</td>
             </tr>
           </tbody>
@@ -295,17 +165,17 @@ onMounted(async () => {
             </tr>
           </thead>
           <tbody>
-            <tr v-for="(fila, index) in rankingApostado" :key="fila.equipo">
+            <tr v-for="(fila, index) in rankingApostado" :key="fila.nombre">
               <td>{{ index + 1 }}</td>
               <td class="equipo">
-                <img :src="obtenerBanderaUrl(fila.equipo)" :alt="fila.equipo" />
-                <span>{{ fila.equipo }}</span>
+                <img :src="obtenerBanderaUrl(fila.nombre)" :alt="fila.nombre" />
+                <span>{{ fila.nombre }}</span>
               </td>
               <td>{{ fila.jugados }}</td>
               <td>{{ fila.ganados }}</td>
               <td>{{ fila.empatados }}</td>
               <td>{{ fila.perdidos }}</td>
-              <td>{{ fila.diferencia }}</td>
+              <td>{{ fila.diferenciaGol }}</td>
               <td class="puntos">{{ fila.puntos }}</td>
             </tr>
           </tbody>
@@ -313,14 +183,17 @@ onMounted(async () => {
       </article>
     </section>
 
-    <!-- ── RANKING AMIGOS ── -->
     <section class="ranking-amigos">
       <h2 class="amigos-titulo">Ranking de amigos</h2>
 
       <div v-if="cargandoAmigos" class="mensaje">Cargando amigos...</div>
 
+      <div v-else-if="errorAmigos" class="mensaje error">
+        {{ errorAmigos }}
+      </div>
+
       <div v-else-if="usuariosOrdenados.length === 0" class="mensaje">
-        No hay usuarios registrados todavía.
+        No hay usuarios registrados todavia.
       </div>
 
       <template v-else>
@@ -341,7 +214,6 @@ onMounted(async () => {
         </div>
       </template>
     </section>
-
   </main>
 </template>
 
@@ -497,7 +369,6 @@ tr:last-child td {
   }
 }
 
-/* ── Ranking amigos ── */
 .ranking-amigos {
   margin-top: 2.5rem;
 }

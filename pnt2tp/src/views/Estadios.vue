@@ -1,75 +1,89 @@
 <script setup>
-    import { obtenerEstadios } from '@/services/partidosService';
-    import { useRouter } from 'vue-router'
-    import { ref, onMounted } from 'vue'
-    import DetalleEstadio from './DetalleEstadio.vue';
+import { computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+import { useEstaticoStore } from '../stores/storeEstaticos'
 
-    const router= useRouter()
-    const estadios= ref([])
-    const cargando = ref(true)
-    const error = ref('')
+const router = useRouter()
+const estaticoStore = useEstaticoStore()
 
-    function detalleEstadio(id){
-        //al hacer click, llama a la url del estadio seleccionado pasando su id
-        router.push(`/estadios/${id}`)
-    }
+function detalleEstadio(id) {
+  router.push(`/estadios/${id}`)
+}
 
+const cargando = computed(() => estaticoStore.loading && estaticoStore.estadios.length === 0)
+const error = computed(() => estaticoStore.errores.estadios || '')
 
-
-    onMounted(async ()=>{
-        //llama al metodo que trae la lista de estadios de la api
-        const respuesta= await obtenerEstadios()
-        //como viene dentro de{} le indico que quiero el atributo estadios, que contiene el array de los estadios
-        estadios.value = respuesta.estadios
-
-
-    }
-    )
-
-
-
-
-
+onMounted(() => {
+  estaticoStore.cargarDatosMundial()
+})
 </script>
 
 <template>
-  <h1 class="titulo-estadios">Estadios</h1>
+  <main class="estadios-page">
+    <h1 class="titulo-estadios">Estadios</h1>
 
-  <section class="estadios-container">
-    <article
-      v-for="estadio in estadios"
-      :key="estadio.id"
-      class="estadio-card"
-      @click="detalleEstadio(estadio.id)"
-    >
-      <div class="card-image-container">
-        <img :src="estadio.imagen" :alt="estadio.nombre" loading="lazy" />
-        <span class="badge-pais">{{ estadio.pais }}</span>
-      </div>
+    <section v-if="cargando" class="mensaje">
+      Cargando estadios...
+    </section>
 
-      <div class="card-content-container">
-        <h3>{{ estadio.nombre }}</h3>
+    <section v-else-if="error" class="mensaje mensaje--error">
+      {{ error }}
+    </section>
 
-        <p class="info-location">
-          📍 <strong>Ciudad:</strong> {{ estadio.ciudad }}
-        </p>
+    <section v-else class="estadios-container">
+      <article
+        v-for="estadio in estaticoStore.estadios"
+        :key="estadio.id"
+        class="estadio-card"
+        @click="detalleEstadio(estadio.id)"
+      >
+        <div class="card-image-container">
+          <img :src="estadio.imagen" :alt="estadio.nombre" loading="lazy" />
+          <span class="badge-pais">{{ estadio.pais }}</span>
+        </div>
 
-        <p class="info-capacity">
-          🏟️ <strong>Capacidad:</strong> {{ estadio.capacidad }} espectadores
-        </p>
-      </div>
-    </article>
-  </section>
+        <div class="card-content-container">
+          <h3>{{ estadio.nombre }}</h3>
+
+          <p class="info-location">
+            <strong>Ciudad:</strong> {{ estadio.ciudad }}
+          </p>
+
+          <p class="info-capacity">
+            <strong>Capacidad:</strong> {{ estadio.capacidad }} espectadores
+          </p>
+        </div>
+      </article>
+    </section>
+  </main>
 </template>
 
-
-
 <style scoped>
+.estadios-page {
+  padding-bottom: 32px;
+}
+
 .titulo-estadios {
   text-align: center;
   margin: 24px 0;
   font-size: 32px;
   color: #e5e7eb;
+}
+
+.mensaje {
+  width: 90%;
+  max-width: 850px;
+  margin: 0 auto;
+  padding: 24px;
+  text-align: center;
+  border-radius: 12px;
+  background-color: #1f2937;
+  color: #e5e7eb;
+}
+
+.mensaje--error {
+  background-color: #7f1d1d;
+  color: white;
 }
 
 .estadios-container {
@@ -146,7 +160,8 @@
 }
 
 @media (max-width: 700px) {
-  .estadios-container {
+  .estadios-container,
+  .mensaje {
     width: 95%;
   }
 

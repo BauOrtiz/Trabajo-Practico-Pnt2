@@ -15,6 +15,7 @@ import Pais from '../views/Pais.vue'
 import Estadios from '../views/Estadios.vue'
 import DetalleEstadio from '../views/DetalleEstadio.vue'
 import Registro from '../views/Registro.vue'
+import AdminCalendario from '../views/AdminCalendario.vue'
 
 
 
@@ -35,15 +36,11 @@ const routes = [
         component: Login
     },
     {
-        path: '/perfil/:id',
-        name: 'Perfil',
-        component: Perfil
+        path: '/perfil',
+         name: 'Perfil',
+         component: Perfil
     },
-    {
-        path: '/:pathMatch(.*)*',
-        name: 'NotFound',
-        component: NotFound
-    },
+    
      {
         path: '/registro',
         name: 'Registro',
@@ -101,6 +98,12 @@ const routes = [
         component: Ranking
     },
 
+    {
+        path: '/admin/calendario',
+        name: 'AdminCalendario',
+        component: AdminCalendario
+    },
+
 //Paises:
     {
         path:'/paises',
@@ -112,6 +115,14 @@ const routes = [
         path: '/paises/:id',
         name: 'Pais',
         component: Pais
+    },
+
+//NotFound:
+
+    {
+        path: '/:pathMatch(.*)*',
+        name: 'NotFound',
+        component: NotFound
     }
 
 

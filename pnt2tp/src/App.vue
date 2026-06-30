@@ -1,27 +1,53 @@
 <script setup>
 import { computed, onMounted, ref, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import Login from './views/Login.vue'
 import { useAuthStore } from './stores/storeAuth'
-import { obtenerPartidos } from './services/partidosService'
-import { calcularPuntosProde } from './utils/puntuacionProde'
+import { obtenerPredicciones } from './services/prediccionesService'
+import { calcularPuntosDesdePredicciones } from './services/puntosService'
+import { useEstaticoStore } from './stores/storeEstaticos'
 
 const authStore = useAuthStore()
+const storeEstaticos = useEstaticoStore()
 const router = useRouter()
+const route = useRoute()
 const mostrarLogin = ref(false)
 const mostrarMenu = ref(false)
-const partidos = ref([])
 const predicciones = ref([])
 
-// Lista de rutas que se muestran en el menu lateral y en la navbar oculta.
-const linksNavbar = [
+// Lista de rutas que se muestran en la navbar principal.
+const linksBaseNavbar = [
   { to: '/home', label: 'Inicio' },
-  { to: '/partidos', label: 'Partidos' },
+    { to: '/partidos', label: 'Partidos' },
   { to: '/ranking', label: 'Ranking' },
   { to: '/prode', label: 'Prode' },
   { to: '/paises', label: 'Selecciones' },
   { to: '/estadios', label: 'Estadios' }
 ]
+
+const linksNavbar = computed(() => {
+  if (!authStore.isAdmin) {
+    return linksBaseNavbar
+  }
+
+  return [
+    ...linksBaseNavbar,
+    { to: '/admin/calendario', label: 'Admin' }
+  ]
+})
+
+const linksMenu = computed(() => {
+  const links = [...linksNavbar.value]
+
+  if (authStore.isLoggedIn) {
+    links.push({
+      to: '/perfil',
+      label: 'Perfil'
+    })
+  }
+
+  return links
+})
 
 // Muestra el nombre del usuario si existe; si no, usa el email o un texto generico.
 const nombreUsuario = computed(() => {
@@ -30,7 +56,7 @@ const nombreUsuario = computed(() => {
 
 // Calcula los puntos del usuario comparando sus predicciones contra resultados reales.
 const puntosProde = computed(() => {
-  return calcularPuntosProde(predicciones.value, partidos.value)
+  return calcularPuntosDesdePredicciones(predicciones.value, storeEstaticos.partidos)
 })
 
 // Abre el modal de login y cierra el menu lateral si estaba abierto.
@@ -44,10 +70,13 @@ function cerrarLogin() {
   mostrarLogin.value = false
 }
 
-// Abre el panel de usuario y actualiza predicciones/partidos antes de mostrarlo.
+function irARegistroDesdeLogin() {
+  cerrarLogin()
+}
+
+// Abre el panel de usuario y actualiza predicciones antes de mostrarlo.
 async function abrirMenu() {
   cargarPredicciones()
-  await cargarPartidos()
   mostrarMenu.value = true
 }
 
@@ -66,37 +95,41 @@ function navegarDesdeMenu(ruta) {
   cerrarMenu()
 }
 
-
 function cargarPredicciones() {
-  const prediccionesGuardadas = localStorage.getItem('predicciones')
-  predicciones.value = prediccionesGuardadas ? JSON.parse(prediccionesGuardadas) : []
+  predicciones.value = obtenerPredicciones(authStore.user?.id)
 }
 
-// Trae los partidos desde la API para poder calcular puntos reales del Prode.
-async function cargarPartidos() {
-  if (partidos.value.length > 0) return
-
-  try {
-    partidos.value = await obtenerPartidos()
-  } catch (error) {
-    partidos.value = []
+function abrirLoginDesdeRuta() {
+  if (route.query.login !== '1' || authStore.isLoggedIn) {
+    return
   }
+
+  mostrarLogin.value = true
+  router.replace({ path: route.path, query: {} })
 }
+
 
 // Si el login fue correcto, cierra automaticamente el modal de login.
 watch(
-  () => authStore.isLoggedIn,
-  (estaLogueado) => {
-    if (estaLogueado) {
+  () => authStore.user?.id,
+  (usuarioId) => {
+    cargarPredicciones()
+
+    if (usuarioId) {
       cerrarLogin()
     }
   }
 )
 
+watch(
+  () => route.query.login,
+  abrirLoginDesdeRuta
+)
+
 // Carga datos iniciales cuando se monta la app.
 onMounted(async () => {
   cargarPredicciones()
-  await cargarPartidos()
+  abrirLoginDesdeRuta()
 })
 </script>
 
@@ -157,6 +190,7 @@ onMounted(async () => {
           <!-- Datos del usuario logueado y puntos actuales del Prode. -->
           <section v-if="authStore.isLoggedIn" class="user-summary">
             <p class="user-name">{{ nombreUsuario }}</p>
+            <p class="user-role">{{ authStore.nombreRol }}</p>
             <p class="user-points">{{ puntosProde }} puntos</p>
           </section>
 
@@ -169,7 +203,7 @@ onMounted(async () => {
           <!-- Links de navegacion dentro del panel lateral. -->
           <nav class="side-menu-links" aria-label="Navegacion lateral">
             <router-link
-              v-for="link in linksNavbar"
+              v-for="link in linksMenu"
               :key="link.to"
               :to="link.to"
               @click.prevent="navegarDesdeMenu(link.to)"
@@ -217,7 +251,7 @@ onMounted(async () => {
           ×
         </button>
 
-        <Login />
+        <Login @registrarse="irARegistroDesdeLogin" />
       </section>
     </div>
   </div>
@@ -368,6 +402,17 @@ onMounted(async () => {
   color: #93c5fd;
   font-size: 0.95rem;
   font-weight: 700;
+}
+
+.user-role {
+  display: inline-flex;
+  margin: 0 0 8px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  color: #dbeafe;
+  background: #2563eb;
+  font-size: 0.75rem;
+  font-weight: 800;
 }
 
 .side-menu-close {

@@ -1,46 +1,48 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
-import { obtenerSelecciones } from '../services/partidosService'
+import { useEstaticoStore } from '../stores/storeEstaticos'
 
 const route = useRoute()
-const paisId = route.params.id
 
-const pais = ref(null)
-const error = ref('')
-const cargando = ref(true)
+const estaticoStore = useEstaticoStore()
+const paisId = computed(() => route.params.id)
 
 onMounted(async () => {
-  try {
-    const respuesta = await obtenerSelecciones()
-    const selecciones = respuesta.selecciones ?? []
-
-    const paisEncontrado = selecciones.find(p => p.id === paisId)
-
-    if (paisEncontrado) {
-      pais.value = paisEncontrado
-    } else {
-      error.value = 'No se encontró el país en la base de datos.'
-    }
-  } catch (e) {
-    error.value = 'Error al cargar los datos del país.'
-  } finally {
-    cargando.value = false
-  }
+estaticoStore.cargarDatosMundial()
 })
+
+const cargando = computed(() => estaticoStore.loading && estaticoStore.selecciones.length === 0)
+
+const pais = computed(() => {
+  if (!estaticoStore.selecciones || estaticoStore.selecciones.length === 0) {
+    return null
+  }
+
+  return estaticoStore.obtenerSeleccionPorId(paisId.value)
+})
+
+const error = computed(() => {
+  if (estaticoStore.errores.selecciones) {
+    return estaticoStore.errores.selecciones
+  }
+
+  if (estaticoStore.cargado && !pais.value) {
+    return 'No se encontró el país en la base de datos.'
+  }
+
+  return ''
+})
+
 </script>
 
 <template>
   <section class="detalle-pais">
-    <div v-if="cargando">
-      <h2>⏳ Cargando datos del país...</h2>
-    </div>
+    <p v-if="error" class="mensaje">{{ error }}</p>
 
-    <div v-else-if="error">
-      <h2>{{ error }}</h2>
-    </div>
+    <p v-else-if="cargando || !pais" class="mensaje">Cargando país...</p>
 
-    <div v-else>
+    <template v-else>
       <div class="encabezado">
         <img 
           v-if="pais.bandera" 
@@ -94,13 +96,18 @@ onMounted(async () => {
       <p v-else>
         No hay jugadores cargados.
       </p>
-    </div>
+    </template>
   </section>
 </template>
 
 <style scoped>
 .detalle-pais {
   padding: 24px;
+}
+
+.mensaje {
+  color: #e5e7eb;
+  text-align: center;
 }
 
 .encabezado {
