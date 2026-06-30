@@ -1,5 +1,11 @@
 import { defineStore } from 'pinia'
 import { obtenerEstadios, obtenerPartidos, obtenerSelecciones } from '@/services/partidosService'
+import {
+  aplicarCambiosFechaPartidos,
+  eliminarCambioFechaPartido,
+  eliminarCambiosFechaPartidos,
+  guardarCambioFechaPartido
+} from '@/services/calendarioAdminService'
 
 function crearErroresVacios() {
   return {
@@ -72,10 +78,54 @@ export const useEstaticoStore = defineStore('estatico', {
       this.errores.partidos = ''
 
       try {
-        this.partidos = await obtenerPartidos()
+        const partidos = await obtenerPartidos()
+        this.partidos = aplicarCambiosFechaPartidos(partidos)
       } catch {
         this.errores.partidos = 'No se pudieron cargar los partidos.'
       }
+    },
+
+    actualizarFechaPartido(partidoId, nuevaFecha) {
+      guardarCambioFechaPartido(partidoId, nuevaFecha)
+
+      this.partidos = this.partidos.map((partido) => {
+        if (String(partido.id) !== String(partidoId)) {
+          return partido
+        }
+
+        return {
+          ...partido,
+          fechaOriginal: partido.fechaOriginal || partido.fecha,
+          fecha: nuevaFecha,
+          fechaHora: nuevaFecha,
+          fechaModificadaPorAdmin: true
+        }
+      })
+    },
+
+    revertirFechaPartido(partidoId) {
+      eliminarCambioFechaPartido(partidoId)
+
+      this.partidos = this.partidos.map((partido) => {
+        if (String(partido.id) !== String(partidoId)) {
+          return partido
+        }
+
+        const fechaOriginal = partido.fechaOriginal || partido.partidoOriginal?.fechaHora || partido.fecha
+
+        return {
+          ...partido,
+          fecha: fechaOriginal,
+          fechaHora: fechaOriginal,
+          fechaModificadaPorAdmin: false
+        }
+      })
+    },
+
+    restaurarFechasPartidos() {
+      eliminarCambiosFechaPartidos()
+      this.partidos = []
+      return this.cargarPartidos()
     },
 
     async cargarEstadios() {

@@ -15,7 +15,7 @@ const mostrarMenu = ref(false)
 const predicciones = ref([])
 
 // Lista de rutas que se muestran en el menu lateral y en la navbar oculta.
-const linksNavbar = [
+const linksBaseNavbar = [
   { to: '/home', label: 'Inicio' },
     { to: '/partidos', label: 'Partidos' },
   { to: '/ranking', label: 'Ranking' },
@@ -25,6 +25,17 @@ const linksNavbar = [
   { to: '/perfil', label: 'Perfil' }
   
 ]
+
+const linksNavbar = computed(() => {
+  if (!authStore.isAdmin) {
+    return linksBaseNavbar
+  }
+
+  return [
+    ...linksBaseNavbar,
+    { to: '/admin/calendario', label: 'Admin' }
+  ]
+})
 
 // Muestra el nombre del usuario si existe; si no, usa el email o un texto generico.
 const nombreUsuario = computed(() => {
