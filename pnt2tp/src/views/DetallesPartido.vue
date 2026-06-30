@@ -129,8 +129,6 @@ const guardarPronostico = () => {
       <div class="grupo-badge">
         {{ partido.grupoId ? `Grupo ${partido.grupoId}` : partido.fase?.replaceAll('_', ' ') }}
       </div>
-      
-      <div class="grupo-badge">Grupo {{ partido.grupoId }}</div>
 
       <div class="marcador">
         <div class="equipo">
