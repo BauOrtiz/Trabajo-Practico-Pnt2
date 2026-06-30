@@ -1,7 +1,7 @@
 <script setup>
 import { ref, onMounted, computed, watch } from 'vue'
 import { useRoute } from 'vue-router'
-import { useEstaticoStore } from '../stores/storeEstaticos' // Usamos Pinia
+import { useEstaticoStore } from '../stores/storeEstaticos'
 import { useAuthStore } from '../stores/storeAuth'
 import { guardarPrediccion, obtenerPredicciones } from '../services/prediccionesService'
 import { obtenerEstadoPartido } from '../utils/estadoPartido.js'
@@ -10,7 +10,6 @@ const route = useRoute()
 const estaticoStore = useEstaticoStore()
 const authStore = useAuthStore()
 
-// 1. Convertimos el ID en reactivo para asegurar que Vue lo lea bien
 const partidoId = computed(() => route.params.id)
 
 const partido = ref(null)
@@ -19,6 +18,9 @@ const error = ref('')
 
 const pronosticoLocal = ref(null)
 const pronosticoVisitante = ref(null)
+
+const mensajePronostico = ref('')
+const mensajeTipo = ref('')
 
 function cargarPronosticoDelUsuario() {
   pronosticoLocal.value = null
@@ -54,7 +56,6 @@ const unformatedDate = (fechaStr) => {
 
 onMounted(async () => {
   try {
-    // Aseguramos que Pinia tenga los datos cargados sin pegarle a la API de nuevo
     await estaticoStore.cargarDatosMundial()
 
     if (estaticoStore.errores.partidos) {
@@ -68,7 +69,7 @@ onMounted(async () => {
       error.value = ''
       cargarPronosticoDelUsuario()
     } else {
-      error.value = "No se encontró el partido en la base de datos."
+      error.value = 'No se encontró el partido en la base de datos.'
     }
   } catch {
     error.value = 'Hubo un problema al cargar los datos.'
@@ -77,25 +78,30 @@ onMounted(async () => {
   }
 })
 
-// Función para procesar el prode
 const guardarPronostico = () => {
+  mensajePronostico.value = ''
+
   if (!authStore.user?.id) {
-    alert('Debe iniciar sesión para guardar una predicción.')
+    mensajePronostico.value = 'Debés iniciar sesión para guardar una predicción.'
+    mensajeTipo.value = 'error'
     return
   }
 
   if (pronosticoLocal.value === null || pronosticoVisitante.value === null) {
-    alert('Por favor completa ambos resultados antes de guardar.')
-    return 'todos'
+    mensajePronostico.value = 'Completá ambos resultados antes de guardar.'
+    mensajeTipo.value = 'error'
+    return
   }
 
   if (pronosticoLocal.value < 0 || pronosticoVisitante.value < 0) {
-    alert('Los goles no pueden ser negativos.')
+    mensajePronostico.value = 'Los goles no pueden ser negativos.'
+    mensajeTipo.value = 'error'
     return
   }
 
   if (obtenerEstadoPartido(partido.value) !== 'programado') {
-    alert('No se puede predecir un partido ya iniciado o finalizado.')
+    mensajePronostico.value = 'No se puede predecir un partido ya iniciado o finalizado.'
+    mensajeTipo.value = 'error'
     return
   }
 
@@ -108,7 +114,8 @@ const guardarPronostico = () => {
     authStore.user.id
   )
 
-  alert(`Pronóstico guardado: ${partido.value.equipoLocal} ${pronosticoLocal.value} - ${pronosticoVisitante.value} ${partido.value.equipoVisitante}`)
+  mensajePronostico.value = `Pronóstico guardado: ${partido.value.equipoLocal} ${pronosticoLocal.value} - ${pronosticoVisitante.value} ${partido.value.equipoVisitante}`
+  mensajeTipo.value = 'exito'
 }
 </script>
 
@@ -123,14 +130,16 @@ const guardarPronostico = () => {
         {{ partido.grupoId ? `Grupo ${partido.grupoId}` : partido.fase?.replaceAll('_', ' ') }}
       </div>
       
+      <div class="grupo-badge">Grupo {{ partido.grupoId }}</div>
+
       <div class="marcador">
         <div class="equipo">
           <h2>{{ partido.equipoLocal }}</h2>
           <span v-if="obtenerEstadoPartido(partido) === 'finalizado'" class="goles">{{ partido.golesLocal }}</span>
         </div>
-        
+
         <div class="vs">VS</div>
-        
+
         <div class="equipo">
           <h2>{{ partido.equipoVisitante }}</h2>
           <span v-if="obtenerEstadoPartido(partido) === 'finalizado'" class="goles">{{ partido.golesVisitante }}</span>
@@ -143,26 +152,38 @@ const guardarPronostico = () => {
 
       <div class="prode-section" v-if="obtenerEstadoPartido(partido) === 'programado'">
         <h3>Cargar mi Pronóstico</h3>
-        <div class="prode-inputs">
-          <input 
-            v-model.number="pronosticoLocal" 
-            type="number" 
-            min="0" 
-            placeholder="0" 
-            class="input-gol" 
-          />
-          <span class="guion">-</span>
-          <input 
-            v-model.number="pronosticoVisitante" 
-            type="number" 
-            min="0" 
-            placeholder="0" 
-            class="input-gol" 
-          />
+
+        <p v-if="mensajePronostico" :class="['mensaje', mensajeTipo]">
+          {{ mensajePronostico }}
+        </p>
+
+        <div v-if="!authStore.user?.id" class="login-requerido">
+          <p>Iniciá sesión para cargar tu pronóstico.</p>
+          <router-link to="/login" class="btn-login">Ir al login</router-link>
         </div>
-        <button @click="guardarPronostico" class="btn-guardar">
-          Confirmar Pronóstico
-        </button>
+
+        <template v-else>
+          <div class="prode-inputs">
+            <input
+              v-model.number="pronosticoLocal"
+              type="number"
+              min="0"
+              placeholder="0"
+              class="input-gol"
+            />
+            <span class="guion">-</span>
+            <input
+              v-model.number="pronosticoVisitante"
+              type="number"
+              min="0"
+              placeholder="0"
+              class="input-gol"
+            />
+          </div>
+          <button @click="guardarPronostico" class="btn-guardar">
+            Confirmar Pronóstico
+          </button>
+        </template>
       </div>
     </div>
 
@@ -257,7 +278,6 @@ const guardarPronostico = () => {
   color: #059669;
 }
 
-/* Estilos de la sección Prode */
 .prode-section {
   background-color: #f3f4f6;
   padding: 20px;
@@ -269,6 +289,45 @@ const guardarPronostico = () => {
   font-size: 16px;
   color: #1f2937;
   margin-bottom: 15px;
+}
+
+.mensaje {
+  padding: 0.75rem;
+  border-radius: 8px;
+  margin-bottom: 0.75rem;
+  font-weight: 500;
+  font-size: 14px;
+}
+
+.mensaje.error {
+  background-color: #fee2e2;
+  color: #b91c1c;
+}
+
+.mensaje.exito {
+  background-color: #d1fae5;
+  color: #065f46;
+}
+
+.login-requerido {
+  text-align: center;
+  padding: 1rem 0;
+  color: #4b5563;
+}
+
+.btn-login {
+  display: inline-block;
+  margin-top: 0.5rem;
+  padding: 0.6rem 1.5rem;
+  background-color: #2563eb;
+  color: white;
+  border-radius: 8px;
+  text-decoration: none;
+  font-weight: bold;
+}
+
+.btn-login:hover {
+  background-color: #1d4ed8;
 }
 
 .prode-inputs {

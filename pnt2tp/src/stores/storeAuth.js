@@ -26,7 +26,12 @@ function obtenerUsuarioGuardado() {
   if (!usuarioGuardado) return null
 
   try {
-    return normalizarUsuario(JSON.parse(usuarioGuardado))
+    const parsed = JSON.parse(usuarioGuardado)
+    if (!parsed?.id) {
+      localStorage.removeItem('prode_user')
+      return null
+    }
+    return normalizarUsuario(parsed)
   } catch {
     localStorage.removeItem('prode_user')
     return null
