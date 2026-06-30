@@ -7,7 +7,6 @@ import NotFound from '../views/NotFound.vue'
 import Partidos from '../views/Partidos.vue'
 import DetallesPartido from '../views/DetallesPartido.vue'
 import Grupos from '../views/Grupos.vue'
-import DetallesGrupo from '../views/DetallesGrupo.vue'
 import Prode from '../views/Prode.vue'
 import Ranking from '../views/Ranking.vue'
 import Paises from '../views/Paises.vue'
@@ -77,12 +76,6 @@ const routes = [
         path: '/grupos',
         name: 'Grupos',
         component: Grupos
-    },
-
-    {
-        path: '/grupos/:id',
-        name: 'DetallesGrupo',
-        component: DetallesGrupo
     },
 
 //Prode:
