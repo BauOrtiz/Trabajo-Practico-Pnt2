@@ -27,9 +27,9 @@ function registrarse() {
   router.push('/registro')
 }
 
-onMounted(() => {
+onMounted(async () => {
   if (authStore.isLoggedIn) {
-    router.push('/home')
+    await router.push('/home')
   }
 })
 </script>

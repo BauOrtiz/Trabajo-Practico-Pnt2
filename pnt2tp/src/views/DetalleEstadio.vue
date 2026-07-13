@@ -10,7 +10,7 @@ const estaticoStore = useEstaticoStore()
 const estadioId = computed(() => route.params.id)
 
 onMounted(async () => {
-estaticoStore.cargarDatosMundial()
+  await estaticoStore.cargarDatosMundial()
 })
 
 const cargando = computed(() => estaticoStore.loading && estaticoStore.estadios.length === 0)

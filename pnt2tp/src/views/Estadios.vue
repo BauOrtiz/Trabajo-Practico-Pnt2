@@ -13,8 +13,8 @@ function detalleEstadio(id) {
 const cargando = computed(() => estaticoStore.loading && estaticoStore.estadios.length === 0)
 const error = computed(() => estaticoStore.errores.estadios || '')
 
-onMounted(() => {
-  estaticoStore.cargarDatosMundial()
+onMounted(async () => {
+  await estaticoStore.cargarDatosMundial()
 })
 </script>
 

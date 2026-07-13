@@ -143,14 +143,14 @@ function restablecerFaseGrupos() {
   mensaje.value = 'Fase de grupos restablecida correctamente.'
 }
 
-onMounted(() => {
-  estaticoStore.cargarDatosMundial()
+onMounted(async () => {
+  await estaticoStore.cargarDatosMundial()
 })
 </script>
 
 <template>
   <main class="admin-page">
-    <section class="encabezado">
+    <section v-if="authStore.isAdmin" class="encabezado">
       <div>
         <p class="subtitulo">Administración</p>
         <h1>Calendario de partidos</h1>
