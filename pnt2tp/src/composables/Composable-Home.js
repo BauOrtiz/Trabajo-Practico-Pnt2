@@ -46,8 +46,8 @@ export function useProximosPartidos() {
     })
   }
 
-  onMounted(() => {
-    estaticoStore.cargarDatosMundial()
+  onMounted(async () => {
+    await estaticoStore.cargarDatosMundial()
   })
 
   return {

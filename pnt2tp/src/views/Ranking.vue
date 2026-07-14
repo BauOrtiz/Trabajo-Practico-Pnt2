@@ -62,8 +62,8 @@ const rankingApostado = computed(() =>
 )
 
 onMounted(async () => {
-  cargarPredicciones()
-  estaticoStore.cargarDatosMundial()
+  await cargarPredicciones()
+  await estaticoStore.cargarDatosMundial()
 
   try {
     const res = await fetch(API_USUARIOS)

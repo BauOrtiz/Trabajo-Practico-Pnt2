@@ -232,9 +232,10 @@ export const useEstaticoStore = defineStore('estatico', {
       this.loading = true
 
       try {
-        await this.cargarPartidos()
-        await this.cargarEstadios()
-        await this.cargarSelecciones()
+        await Promise.all([this.cargarPartidos(),
+        this.cargarEstadios(),
+        this.cargarSelecciones()])
+
         this.actualizarEstadoCarga()
         return this
       } finally {

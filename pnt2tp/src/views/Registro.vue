@@ -29,9 +29,9 @@ function irAlLogin() {
   })
 }
 
-onMounted(() => {
+onMounted(async () => {
   if (authStore.isLoggedIn) {
-    router.push('/home')
+    await router.push('/home')
   }
 })
 </script>

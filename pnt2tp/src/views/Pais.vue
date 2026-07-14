@@ -9,7 +9,7 @@ const estaticoStore = useEstaticoStore()
 const paisId = computed(() => route.params.id)
 
 onMounted(async () => {
-estaticoStore.cargarDatosMundial()
+  await estaticoStore.cargarDatosMundial()
 })
 
 const cargando = computed(() => estaticoStore.loading && estaticoStore.selecciones.length === 0)

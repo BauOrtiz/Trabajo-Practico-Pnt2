@@ -13,8 +13,8 @@ function irDetalle(id) {
 const cargando = computed(() => estaticoStore.loading && estaticoStore.selecciones.length === 0)
 const error = computed(() => estaticoStore.errores.selecciones || '')
 
-onMounted(() => {
-  estaticoStore.cargarDatosMundial()
+onMounted(async () => {
+  await estaticoStore.cargarDatosMundial()
 })
 </script>
 

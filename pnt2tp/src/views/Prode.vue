@@ -181,9 +181,9 @@ function formatearFecha(fecha) {
   })
 }
 
-onMounted(() => {
-  cargarDesdeLocalStorage()
-  estaticoStore.cargarDatosMundial()
+onMounted(async () => {
+  await cargarDesdeLocalStorage()
+  await estaticoStore.cargarDatosMundial()
 })
 </script>
 

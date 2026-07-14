@@ -29,13 +29,13 @@ function cargarDatosPerfil() {
   }
 }
 
-onMounted(() => {
+onMounted(async () => {
   if (!authStore.isLoggedIn) {
-    router.push('/home?login=1')
+    await router.push('/home?login=1')
     return
   }
 
-  cargarDatosPerfil()
+  await cargarDatosPerfil()
 })
 
 watch(

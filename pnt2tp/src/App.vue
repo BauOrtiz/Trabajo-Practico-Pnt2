@@ -25,19 +25,8 @@ const linksBaseNavbar = [
   { to: '/estadios', label: 'Estadios' }
 ]
 
-const linksNavbar = computed(() => {
-  if (!authStore.isAdmin) {
-    return linksBaseNavbar
-  }
-
-  return [
-    ...linksBaseNavbar,
-    { to: '/admin/calendario', label: 'Admin' }
-  ]
-})
-
 const linksMenu = computed(() => {
-  const links = [...linksNavbar.value]
+  const links = [...linksBaseNavbar]
 
   if (authStore.isLoggedIn) {
     links.push({
@@ -128,8 +117,8 @@ watch(
 
 // Carga datos iniciales cuando se monta la app.
 onMounted(async () => {
-  cargarPredicciones()
-  abrirLoginDesdeRuta()
+  await cargarPredicciones()
+  await abrirLoginDesdeRuta()
 })
 </script>
 
@@ -151,11 +140,15 @@ onMounted(async () => {
       <!-- Navbar principal de la aplicacion. -->
       <nav class="navbar" aria-label="Navegacion principal">
         <router-link
-          v-for="link in linksNavbar"
+          v-for="link in linksBaseNavbar"
           :key="link.to"
           :to="link.to"
         >
           {{ link.label }}
+        </router-link>
+
+        <router-link v-if="authStore.isAdmin" to="/admin/calendario">
+          Admin
         </router-link>
 
         <!-- Boton de login para la navbar original si el usuario no inicio sesion. -->
@@ -209,6 +202,14 @@ onMounted(async () => {
               @click.prevent="navegarDesdeMenu(link.to)"
             >
               {{ link.label }}
+            </router-link>
+
+            <router-link
+              v-if="authStore.isAdmin"
+              to="/admin/calendario"
+              @click.prevent="navegarDesdeMenu('/admin/calendario')"
+            >
+              Admin
             </router-link>
           </nav>
         </div>

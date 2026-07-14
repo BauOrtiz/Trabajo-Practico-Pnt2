@@ -6,8 +6,8 @@ import { obtenerBanderaUrl } from '../utils/banderas.js'
 
 const estaticoStore = useEstaticoStore()
 
-onMounted(() => {
-  estaticoStore.cargarDatosMundial()
+onMounted(async () => {
+  await estaticoStore.cargarDatosMundial()
 })
 
 const cargando = computed(() => estaticoStore.loading && estaticoStore.partidos.length === 0)
