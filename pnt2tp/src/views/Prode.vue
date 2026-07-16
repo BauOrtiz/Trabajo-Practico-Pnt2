@@ -3,25 +3,21 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { useAuthStore } from '../stores/storeAuth'
 import { guardarPredicciones, obtenerPredicciones } from '../services/prediccionesService'
 import { useEstaticoStore } from '../stores/storeEstaticos'
-import { obtenerEstadoPartido } from '../utils/estadoPartido.js'
 import { obtenerBanderaUrl } from '../utils/banderas.js'
 
 const estaticoStore = useEstaticoStore()
 const predicciones = ref([])
 const authStore = useAuthStore()
 
-const prediccionForm = ref({
-  partidoId: '',
-  golesLocal: 0,
-  golesVisitante: 0
-})
-
+const prediccionForm = ref({ partidoId: '', golesLocal: 0, golesVisitante: 0 })
 const prediccionEditandoId = ref(null)
 const mensaje = ref('')
 
-const partidos = computed(() => estaticoStore.partidos)
+// 1. CORREGIDO: Escuchamos el getter reactivo que calcula el estado según la fecha de Admin
+const partidos = computed(() => estaticoStore.partidosConEstadoCalculado)
+
 const cargando = computed(() => estaticoStore.loading && partidos.value.length === 0)
-const errorCarga = computed(() => estaticoStore.errores.partidos || '')
+const errorCarga = computed(() => estaticoStore.error || '') // Adaptado a tu propiedad .error del store
 
 const partidosDisponibles = computed(() => {
   return partidos.value.filter((partido) => partidoDisponible(partido))
@@ -40,12 +36,15 @@ const prediccionesConPartido = computed(() => {
     .filter((prediccion) => prediccion.partido)
 })
 
+// 2. CORREGIDO: Leemos el estado dinámico del partido calculado por el admin
 function partidoDisponible(partido) {
-  return obtenerEstadoPartido(partido) === 'programado'
+  return partido && partido.estado === 'programado'
 }
 
+// 3. CORREGIDO: Buscamos dentro de la lista que tiene los estados al día
 function obtenerPartidoPorId(partidoId) {
-  return estaticoStore.obtenerPartidoPorId(partidoId)
+  if (!partidos.value) return null
+  return partidos.value.find((p) => String(p.id) === String(partidoId))
 }
 
 function cargarDesdeLocalStorage() {
@@ -62,12 +61,7 @@ watch(
 )
 
 function limpiarFormulario() {
-  prediccionForm.value = {
-    partidoId: '',
-    golesLocal: 0,
-    golesVisitante: 0
-  }
-
+  prediccionForm.value = { partidoId: '', golesLocal: 0, golesVisitante: 0 }
   prediccionEditandoId.value = null
 }
 
@@ -81,14 +75,12 @@ function estaSeleccionado(partidoId) {
 
 function guardarPrediccion() {
   mensaje.value = ''
-
   if (!authStore.user?.id) {
-    mensaje.value = 'Debe iniciar sesion para guardar una prediccion.'
+    mensaje.value = 'Debe iniciar sesión para guardar una predicción.'
     return
   }
 
   const partido = obtenerPartidoPorId(prediccionForm.value.partidoId)
-
   if (!partido) {
     mensaje.value = 'Debe seleccionar un partido.'
     return
@@ -107,12 +99,11 @@ function guardarPrediccion() {
   const yaExistePrediccion = predicciones.value.some((item) => {
     const mismoPartido = String(item.partidoId) === String(prediccionForm.value.partidoId)
     const esPrediccionEditada = item.id === prediccionEditandoId.value
-
     return mismoPartido && !esPrediccionEditada
   })
 
   if (yaExistePrediccion) {
-    mensaje.value = 'Ya existe una prediccion para este partido.'
+    mensaje.value = 'Ya existe una predicción para este partido.'
     return
   }
 
@@ -120,14 +111,12 @@ function guardarPrediccion() {
     const prediccion = predicciones.value.find(
       (item) => item.id === prediccionEditandoId.value
     )
-
     if (prediccion) {
       prediccion.partidoId = prediccionForm.value.partidoId
       prediccion.golesLocal = Number(prediccionForm.value.golesLocal)
       prediccion.golesVisitante = Number(prediccionForm.value.golesVisitante)
     }
-
-    mensaje.value = 'Prediccion editada correctamente.'
+    mensaje.value = 'Predicción editada correctamente.'
   } else {
     predicciones.value.push({
       id: Date.now(),
@@ -135,50 +124,41 @@ function guardarPrediccion() {
       golesLocal: Number(prediccionForm.value.golesLocal),
       golesVisitante: Number(prediccionForm.value.golesVisitante)
     })
-
-    mensaje.value = 'Prediccion guardada correctamente.'
+    mensaje.value = 'Predicción guardada correctamente.'
   }
-
+  
   guardarPredicciones(predicciones.value, authStore.user.id)
   limpiarFormulario()
 }
 
 function editarPrediccion(prediccion) {
   const partido = obtenerPartidoPorId(prediccion.partidoId)
-
   if (!partido || !partidoDisponible(partido)) {
-    mensaje.value = 'No se puede editar una prediccion de un partido ya iniciado o finalizado.'
+    mensaje.value = 'No se puede editar una predicción de un partido ya iniciado o finalizado.'
     return
   }
-
   prediccionEditandoId.value = prediccion.id
   prediccionForm.value = {
     partidoId: prediccion.partidoId,
     golesLocal: prediccion.golesLocal,
     golesVisitante: prediccion.golesVisitante
   }
-
   mensaje.value = 'Editando predicción.'
 }
 
 function eliminarPrediccion(prediccion) {
   const partido = obtenerPartidoPorId(prediccion.partidoId)
-
   if (!partido || !partidoDisponible(partido)) {
-    mensaje.value = 'No se puede eliminar una prediccion de un partido ya iniciado o finalizado.'
+    mensaje.value = 'No se puede eliminar una predicción de un partido ya iniciado o finalizado.'
     return
   }
-
   predicciones.value = predicciones.value.filter((item) => item.id !== prediccion.id)
   guardarPredicciones(predicciones.value, authStore.user.id)
-  mensaje.value = 'Prediccion eliminada correctamente.'
+  mensaje.value = 'Predicción eliminada correctamente.'
 }
 
 function formatearFecha(fecha) {
-  return new Date(fecha).toLocaleString('es-AR', {
-    dateStyle: 'short',
-    timeStyle: 'short'
-  })
+  return new Date(fecha).toLocaleString('es-AR', { dateStyle: 'short', timeStyle: 'short' })
 }
 
 onMounted(async () => {

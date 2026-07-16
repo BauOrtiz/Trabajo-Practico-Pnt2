@@ -1,28 +1,21 @@
 <script setup>
-   import { ref, onMounted,computed } from 'vue'
-    import { useRouter } from 'vue-router'
-    import { useEstaticoStore } from '../stores/storeEstaticos'
-    import { obtenerEstadoPartido } from '../utils/estadoPartido.js'
-    import { obtenerBanderaUrl } from '../utils/banderas.js'
+import { ref, onMounted, computed } from 'vue'
+import { useRouter } from 'vue-router'
+import { useEstaticoStore } from '../stores/storeEstaticos'
+import { obtenerBanderaUrl } from '../utils/banderas.js'
 
-    const router = useRouter()
-    const estaticoStore = useEstaticoStore()
+const router = useRouter()
+const estaticoStore = useEstaticoStore()
 const etapaSeleccionada = ref('todos')
 
+// Navega al detalle del partido seleccionado
+function irAlDetalle(id) {
+  router.push(`/partido/${id}`)
+}
 
-    // Navega al detalle del partido seleccionado
-    function irAlDetalle(id) {
-      router.push(`/partido/${id}`)
-    }
- 
-
-    onMounted(async () => {
-            await estaticoStore.cargarDatosMundial()
-    }
-
-
-
-)
+onMounted(async () => {
+  await estaticoStore.cargarDatosMundial()
+})
 
 function nombreFase(fase) {
   const nombres = {
@@ -33,7 +26,6 @@ function nombreFase(fase) {
     TERCER_PUESTO: 'Tercer puesto',
     FINAL: 'Final'
   }
-
   return nombres[fase] || fase
 }
 
@@ -45,31 +37,31 @@ function nombreEtapa(partido) {
   return partido.grupoId ? `Grupo ${partido.grupoId}` : nombreFase(partido.fase)
 }
 
+// 1. CORREGIDO: Buscamos sobre la lista dinámica que reacciona a la fecha del Admin
+const partidos = computed(() => estaticoStore.partidosConEstadoCalculado || [])
+
 // Obtiene los grupos o fases disponibles para el filtro.
 const etapas = computed(() => {
-  if (!estaticoStore.partidos || estaticoStore.partidos.length === 0) {
+  if (partidos.value.length === 0) {
     return []
   }
-
   const opciones = new Map()
-  estaticoStore.partidos.forEach((partido) => {
+  partidos.value.forEach((partido) => {
     opciones.set(claveEtapa(partido), nombreEtapa(partido))
   })
-
   return [...opciones].map(([valor, nombre]) => ({ valor, nombre }))
 })
 
 const mostrandoFaseGrupos = computed(() => {
-  return estaticoStore.partidos.some((partido) => Boolean(partido.grupoId))
+  return partidos.value.some((partido) => Boolean(partido.grupoId))
 })
 
-// Devuelve los partidos segun el grupo o fase seleccionada.
+// Devuelve los partidos según el grupo o fase seleccionada.
 const partidosFiltrados = computed(() => {
   if (etapaSeleccionada.value === 'todos') {
-    return estaticoStore.partidos
+    return partidos.value
   }
-
-  return estaticoStore.partidos.filter(
+  return partidos.value.filter(
     (partido) => claveEtapa(partido) === etapaSeleccionada.value,
   )
 })
@@ -77,39 +69,34 @@ const partidosFiltrados = computed(() => {
 // Formatea la fecha del partido en formato local
 function formatearFecha(fecha) {
   const fechaPartido = new Date(fecha)
-
   return fechaPartido.toLocaleString('es-AR', {
     dateStyle: 'short',
     timeStyle: 'short',
   })
 }
+
+// 2. CORREGIDO: Leemos directamente el estado dinámico calculado
 function mostrarResultado(partido) {
-  if (obtenerEstadoPartido(partido) !== 'finalizado') {
+  if (partido.estado !== 'finalizado') {
     return 'vs'
   }
   return `${partido.golesLocal} - ${partido.golesVisitante}`
 }
 
+// 3. CORREGIDO: Leemos directamente el estado dinámico calculado
 function mostrarEstado(partido) {
-  return obtenerEstadoPartido(partido)
+  return partido.estado || 'programado'
 }
-
 </script>
 
 <template>
   <main class="partidos-page">
-
     <section class="encabezado">
       <div>
         <h1>Partidos</h1>
         <p>Fixture del Mundial 2026</p>
       </div>
-
-      <select
-        v-if="mostrandoFaseGrupos"
-        v-model="etapaSeleccionada"
-        class="filtro-grupo"
-      >
+      <select v-if="mostrandoFaseGrupos" v-model="etapaSeleccionada" class="filtro-grupo" >
         <option value="todos">Todos los grupos</option>
         <option v-for="etapa in etapas" :key="etapa.valor" :value="etapa.valor">
           {{ etapa.nombre }}
@@ -117,53 +104,33 @@ function mostrarEstado(partido) {
       </select>
     </section>
 
-    <!-- Cambiá "cargando" por "estaticoStore.loading" -->
-    <section v-if="estaticoStore.loading && estaticoStore.partidos.length === 0" class="mensaje">
+    <!-- 4. CORREGIDO: Control robusto del estado de carga con Pinia -->
+    <section v-if="estaticoStore.loading && partidos.length === 0" class="mensaje">
       Cargando partidos...
     </section>
-
-    <section v-else-if="estaticoStore.errores.partidos" class="mensaje error">
-      {{ estaticoStore.errores.partidos }}
+    <section v-else-if="estaticoStore.error" class="mensaje error">
+      {{ estaticoStore.error }}
     </section>
-
     <section v-else class="contenedor-partidos">
-      
-      <article
-        v-for="partido in partidosFiltrados"
-        :key="partido.id"
-        class="tarjeta-partido"
-        @click="irAlDetalle(partido.id)" 
-        style="cursor: pointer;"
-      >
+      <article v-for="partido in partidosFiltrados" :key="partido.id" class="tarjeta-partido" @click="irAlDetalle(partido.id)" style="cursor: pointer;" >
         <div class="datos-superiores">
           <span class="grupo">{{ nombreEtapa(partido) }}</span>
-          <span class="estado">{{ mostrarEstado(partido) }}</span>
+          <!-- Agregamos clase según el estado para darle color interactivo -->
+          <span class="estado" :class="partido.estado">{{ mostrarEstado(partido) }}</span>
         </div>
-
         <div class="enfrentamiento">
           <div class="equipo equipo-local">
-            <img
-              class="bandera-img"
-              :src="obtenerBanderaUrl(partido.equipoLocal)"
-              :alt="partido.equipoLocal"
-            />
+            <img class="bandera-img" :src="obtenerBanderaUrl(partido.equipoLocal)" :alt="partido.equipoLocal" />
             <span>{{ partido.equipoLocal }}</span>
           </div>
-
           <strong class="resultado">
             {{ mostrarResultado(partido) }}
           </strong>
-
           <div class="equipo equipo-visitante">
             <span>{{ partido.equipoVisitante }}</span>
-            <img
-              class="bandera-img"
-              :src="obtenerBanderaUrl(partido.equipoVisitante)"
-              :alt="partido.equipoVisitante"
-            />
+            <img class="bandera-img" :src="obtenerBanderaUrl(partido.equipoVisitante)" :alt="partido.equipoVisitante" />
           </div>
         </div>
-
         <p class="fecha">
           {{ formatearFecha(partido.fecha) }}
         </p>

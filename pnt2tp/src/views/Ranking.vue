@@ -15,14 +15,24 @@ const grupoSeleccionado = ref('A')
 const usuarios = ref([])
 const cargandoAmigos = ref(true)
 const errorAmigos = ref('')
+
 const API_USUARIOS = 'https://6a2b1b9ab687a7d5cbc4de36.mockapi.io/prode/Usuarios'
 
-const partidos = computed(() => estaticoStore.partidos)
-const cargando = computed(() => estaticoStore.loading && partidos.value.length === 0)
-const error = computed(() => estaticoStore.errores.partidos || '')
+// 1. Los partidos generales computados desde el store de Admin
+const partidos = computed(() => estaticoStore.partidosConEstadoCalculado || [])
 
+// 🛡️ FILTRO DE SEGURIDAD: Creamos una lista auxiliar con solo los partidos que finalizaron
+const partidosFinalizados = computed(() => {
+  return partidos.value.filter(partido => partido.estado === 'finalizado')
+})
+
+const cargando = computed(() => estaticoStore.loading && partidos.value.length === 0)
+const error = computed(() => estaticoStore.error || '')
+
+// 2. CORREGIDO: Los puntos de los amigos se calculan únicamente con los partidos finalizados
 const usuariosOrdenados = computed(() => {
-  const usuariosConPuntos = calcularUsuariosConPuntos(usuarios.value, partidos.value)
+  if (!partidosFinalizados.value || partidosFinalizados.value.length === 0) return []
+  const usuariosConPuntos = calcularUsuariosConPuntos(usuarios.value, partidosFinalizados.value)
   return [...usuariosConPuntos].sort((a, b) => (b.puntosTotales || 0) - (a.puntosTotales || 0))
 })
 
@@ -51,26 +61,30 @@ watch(
   cargarPredicciones
 )
 
+// 3. CORREGIDO: Usamos el total de partidos para conocer los grupos del fixture
 const grupos = computed(() => obtenerGruposDisponibles(partidos.value))
 
-const rankingReal = computed(() =>
-  calcularTablaGrupo(partidos.value, grupoSeleccionado.value)
-)
+// 4. CORREGIDO: La tabla real se computa solo con partidos finalizados simulados
+const rankingReal = computed(() => {
+  if (partidosFinalizados.value.length === 0) return []
+  return calcularTablaGrupo(partidosFinalizados.value, grupoSeleccionado.value)
+})
 
-const rankingApostado = computed(() =>
-  calcularTablaGrupo(partidos.value, grupoSeleccionado.value, predicciones.value)
-)
+// 5. CORREGIDO: La tabla apostada se computa solo con partidos finalizados simulados
+const rankingApostado = computed(() => {
+  if (partidosFinalizados.value.length === 0) return []
+  return calcularTablaGrupo(partidosFinalizados.value, grupoSeleccionado.value, predicciones.value)
+})
 
 onMounted(async () => {
   await cargarPredicciones()
   await estaticoStore.cargarDatosMundial()
-
+  
   try {
     const res = await fetch(API_USUARIOS)
     if (!res.ok) {
       throw new Error('No se pudo cargar la lista de usuarios.')
     }
-
     const data = await res.json()
     usuarios.value = Array.isArray(data) ? data : []
   } catch (errorUsuarios) {
@@ -88,9 +102,7 @@ onMounted(async () => {
         <h1>Ranking</h1>
         <p>Posiciones reales y posiciones segun tus predicciones.</p>
       </div>
-
-      <label class="selector">
-        Grupo
+      <label class="selector"> Grupo
         <select v-model="grupoSeleccionado">
           <option v-for="grupo in grupos" :key="grupo" :value="grupo">
             Grupo {{ grupo }}
@@ -102,18 +114,16 @@ onMounted(async () => {
     <section v-if="cargando" class="mensaje">
       Cargando ranking...
     </section>
-
     <section v-else-if="error" class="mensaje error">
       {{ error }}
     </section>
-
+    
     <section v-else class="tablas-ranking">
       <article class="tabla-card">
         <div class="tabla-header">
           <h2>Ranking real</h2>
           <span>Grupo {{ grupoSeleccionado }}</span>
         </div>
-
         <table>
           <thead>
             <tr>
@@ -150,7 +160,6 @@ onMounted(async () => {
           <h2>Mi ranking apostado</h2>
           <span>{{ predicciones.length }} predicciones</span>
         </div>
-
         <table>
           <thead>
             <tr>
@@ -185,23 +194,15 @@ onMounted(async () => {
 
     <section class="ranking-amigos">
       <h2 class="amigos-titulo">Ranking de amigos</h2>
-
       <div v-if="cargandoAmigos" class="mensaje">Cargando amigos...</div>
-
       <div v-else-if="errorAmigos" class="mensaje error">
         {{ errorAmigos }}
       </div>
-
       <div v-else-if="usuariosOrdenados.length === 0" class="mensaje">
         No hay usuarios registrados todavia.
       </div>
-
       <template v-else>
-        <div
-          v-for="(usuario, idx) in usuariosOrdenados"
-          :key="usuario.id"
-          :class="['amigo-card', esUsuarioActual(usuario) ? 'amigo-card--propio' : '']"
-        >
+        <div v-for="(usuario, idx) in usuariosOrdenados" :key="usuario.id" :class="['amigo-card', esUsuarioActual(usuario) ? 'amigo-card--propio' : '']" >
           <span class="amigo-pos" :style="{ color: medallaColor(idx) }">{{ idx + 1 }}</span>
           <div class="amigo-avatar">{{ iniciales(usuario.nombre) }}</div>
           <div class="amigo-info">
@@ -225,7 +226,6 @@ onMounted(async () => {
   padding: 32px 20px;
   color: white;
 }
-
 .encabezado {
   display: flex;
   justify-content: space-between;
@@ -233,17 +233,13 @@ onMounted(async () => {
   gap: 16px;
   margin-bottom: 28px;
 }
-
-.encabezado h1,
-.tabla-header h2 {
+.encabezado h1, .tabla-header h2 {
   margin: 0;
 }
-
 .encabezado p {
   margin: 6px 0 0;
   color: #9ca3af;
 }
-
 .selector {
   display: flex;
   flex-direction: column;
@@ -251,7 +247,6 @@ onMounted(async () => {
   color: #d1d5db;
   font-weight: 600;
 }
-
 .selector select {
   min-width: 160px;
   padding: 10px 14px;
@@ -261,7 +256,6 @@ onMounted(async () => {
   color: #111827;
   font-size: 15px;
 }
-
 .mensaje {
   padding: 24px;
   text-align: center;
@@ -269,17 +263,14 @@ onMounted(async () => {
   background-color: #1f2937;
   color: #e5e7eb;
 }
-
 .error {
   background-color: #7f1d1d;
 }
-
 .tablas-ranking {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 20px;
 }
-
 .tabla-card {
   overflow: hidden;
   border: 1px solid #243044;
@@ -287,7 +278,6 @@ onMounted(async () => {
   background-color: #ffffff;
   color: #111827;
 }
-
 .tabla-header {
   display: flex;
   justify-content: space-between;
@@ -296,37 +286,30 @@ onMounted(async () => {
   padding: 18px;
   border-bottom: 1px solid #e5e7eb;
 }
-
 .tabla-header span {
   color: #6b7280;
   font-size: 14px;
   font-weight: 700;
 }
-
 table {
   width: 100%;
   border-collapse: collapse;
 }
-
-th,
-td {
+th, td {
   padding: 12px 10px;
   border-bottom: 1px solid #e5e7eb;
   text-align: center;
   font-size: 14px;
 }
-
 th {
   background-color: #f3f4f6;
   color: #374151;
   font-size: 12px;
   text-transform: uppercase;
 }
-
 tr:last-child td {
   border-bottom: 0;
 }
-
 .equipo {
   display: flex;
   align-items: center;
@@ -335,7 +318,6 @@ tr:last-child td {
   text-align: left;
   font-weight: 700;
 }
-
 .equipo img {
   width: 28px;
   height: 20px;
@@ -343,43 +325,34 @@ tr:last-child td {
   border-radius: 4px;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.18);
 }
-
 .puntos {
   font-weight: 800;
   color: #2563eb;
 }
-
 @media (max-width: 900px) {
   .encabezado {
     flex-direction: column;
     align-items: flex-start;
   }
-
-  .selector,
-  .selector select {
+  .selector, .selector select {
     width: 100%;
   }
-
   .tablas-ranking {
     grid-template-columns: 1fr;
   }
-
   .tabla-card {
     overflow-x: auto;
   }
 }
-
 .ranking-amigos {
   margin-top: 2.5rem;
 }
-
 .amigos-titulo {
   font-size: 1.2rem;
   font-weight: bold;
   color: #fff;
   margin-bottom: 1rem;
 }
-
 .amigo-card {
   display: flex;
   align-items: center;
@@ -390,18 +363,15 @@ tr:last-child td {
   margin-bottom: 0.5rem;
   color: #111;
 }
-
 .amigo-card--propio {
   background-color: #fef3d0;
 }
-
 .amigo-pos {
   font-size: 1rem;
   font-weight: bold;
   min-width: 20px;
   text-align: center;
 }
-
 .amigo-avatar {
   width: 36px;
   height: 36px;
@@ -415,13 +385,11 @@ tr:last-child td {
   color: #f0b429;
   flex-shrink: 0;
 }
-
 .amigo-info {
   flex: 1;
   display: flex;
   flex-direction: column;
 }
-
 .amigo-nombre {
   font-weight: 600;
   font-size: 0.9rem;
@@ -429,12 +397,10 @@ tr:last-child td {
   align-items: center;
   gap: 0.4rem;
 }
-
 .amigo-pts {
   font-size: 0.78rem;
   color: #666;
 }
-
 .vos-tag {
   font-size: 0.7rem;
   background-color: #f0b429;

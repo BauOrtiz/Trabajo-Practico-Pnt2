@@ -4,7 +4,6 @@ import { useRoute } from 'vue-router'
 import { useEstaticoStore } from '../stores/storeEstaticos'
 import { useAuthStore } from '../stores/storeAuth'
 import { guardarPrediccion, obtenerPredicciones } from '../services/prediccionesService'
-import { obtenerEstadoPartido } from '../utils/estadoPartido.js'
 
 const route = useRoute()
 const estaticoStore = useEstaticoStore()
@@ -12,7 +11,13 @@ const authStore = useAuthStore()
 
 const partidoId = computed(() => route.params.id)
 
-const partido = ref(null)
+// ⚡ REACTIVIDAD CLAVE: El partido se computa buscando directamente sobre el getter reactivo del Admin
+const partido = computed(() => {
+  return estaticoStore.partidosConEstadoCalculado.find(
+    (p) => String(p.id) === String(partidoId.value)
+  )
+})
+
 const loading = ref(true)
 const error = ref('')
 
@@ -38,9 +43,12 @@ function cargarPronosticoDelUsuario() {
   }
 }
 
+// Recargamos el pronóstico si cambia el usuario o el partido calculado
 watch(
-  () => authStore.user?.id,
-  cargarPronosticoDelUsuario
+  () => [authStore.user?.id, partido.value?.id],
+  () => {
+    cargarPronosticoDelUsuario()
+  }
 )
 
 const unformatedDate = (fechaStr) => {
@@ -58,12 +66,10 @@ onMounted(async () => {
   try {
     await estaticoStore.cargarDatosMundial()
 
-    if (estaticoStore.errores.partidos) {
+    if (estaticoStore.errores?.partidos) {
       error.value = estaticoStore.errores.partidos
       return
     }
-
-    partido.value = estaticoStore.obtenerPartidoPorId(partidoId.value)
 
     if (partido.value) {
       error.value = ''
@@ -99,7 +105,8 @@ const guardarPronostico = () => {
     return
   }
 
-  if (obtenerEstadoPartido(partido.value) !== 'programado') {
+  // 🛡️ Usamos el estado calculado reactivamente en vez del utilitario estático
+  if (partido.value.estado !== 'programado') {
     mensajePronostico.value = 'No se puede predecir un partido ya iniciado o finalizado.'
     mensajeTipo.value = 'error'
     return
@@ -133,22 +140,35 @@ const guardarPronostico = () => {
       <div class="marcador">
         <div class="equipo">
           <h2>{{ partido.equipoLocal }}</h2>
-          <span v-if="obtenerEstadoPartido(partido) === 'finalizado'" class="goles">{{ partido.golesLocal }}</span>
+          <!-- Mostramos los goles reales de la API solo si el estado simulado es finalizado -->
+          <span v-if="partido.estado === 'finalizado'" class="goles">
+            {{ partido.golesLocal }}
+          </span>
         </div>
 
         <div class="vs">VS</div>
 
         <div class="equipo">
           <h2>{{ partido.equipoVisitante }}</h2>
-          <span v-if="obtenerEstadoPartido(partido) === 'finalizado'" class="goles">{{ partido.golesVisitante }}</span>
+          <!-- Mostramos los goles reales de la API solo si el estado simulado es finalizado -->
+          <span v-if="partido.estado === 'finalizado'" class="goles">
+            {{ partido.golesVisitante }}
+          </span>
         </div>
       </div>
 
       <div class="info-adicional">
-        <p><strong>Estado:</strong> <span class="estado-texto">{{ obtenerEstadoPartido(partido) }}</span></p>
+        <p><strong>Fecha:</strong> {{ unformatedDate(partido.fecha) }}</p>
+        <p>
+          <strong>Estado:</strong> 
+          <span class="estado-texto" :class="partido.estado">
+            {{ partido.estado }}
+          </span>
+        </p>
       </div>
 
-      <div class="prode-section" v-if="obtenerEstadoPartido(partido) === 'programado'">
+      <!-- El Prode se muestra solo si el Admin marca el partido en estado programado -->
+      <div class="prode-section" v-if="partido.estado === 'programado'">
         <h3>Cargar mi Pronóstico</h3>
 
         <p v-if="mensajePronostico" :class="['mensaje', mensajeTipo]">
@@ -273,7 +293,17 @@ const guardarPronostico = () => {
 .estado-texto {
   text-transform: capitalize;
   font-weight: 600;
-  color: #059669;
+}
+
+/* Colores para cada estado en la info adicional */
+.estado-texto.programado {
+  color: #2563eb;
+}
+.estado-texto.finalizado {
+  color: #b91c1c;
+}
+.estado-texto.en.curso {
+  color: #d97706; /* Color ámbar/naranja para partidos vivos */
 }
 
 .prode-section {

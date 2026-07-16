@@ -40,7 +40,8 @@ export const useEstaticoStore = defineStore('estatico', {
     cargado: false,
     loading: false,
     error: '',
-    errores: crearErroresVacios()
+    errores: crearErroresVacios(),
+    fechaAdmin: new Date()
   }),
 
   getters: {
@@ -53,10 +54,63 @@ export const useEstaticoStore = defineStore('estatico', {
       state.partidosFaseGrupos.every(
         (partido) => obtenerEstadoPartido(partido) === 'finalizado'
       )
-    )
+    ),
+    partidosConEstadoCalculado: (state) => {
+      if (!state.partidos) return []
+      
+      return state.partidos.map(partido => {
+        const fechaPartido = new Date(partido.fecha)
+        const limiteAdmin = new Date(state.fechaAdmin)
+        
+        // Calculamos la diferencia en milisegundos
+        const diferencia = limiteAdmin - fechaPartido
+        const noventaMinutos = 90 * 60 * 1000 // Duración promedio de un partido
+        
+        let estadoCalculado = 'programado'
+        
+        if (diferencia > noventaMinutos) {
+          estadoCalculado = 'finalizado'
+        } else if (diferencia >= 0) {
+          estadoCalculado = 'en curso'
+        }
+        // ⚽ CONTROL DEL TIEMPO PARA GOLES:
+        let golesLocalCalculados = null
+        let golesVisitanteCalculados = null
+
+        if (estadoCalculado === 'finalizado') {
+          // Si el partido ya terminó según el Admin, le asignamos goles:
+          if (partido.golesLocal !== null && partido.golesLocal !== undefined) {
+            // Si la API ya traía goles reales, los respetamos
+            golesLocalCalculados = partido.golesLocal
+            golesVisitanteCalculados = partido.golesVisitante
+          } else {
+            // Si la API no traía goles, generamos los simulados deterministas para que sume puntos
+            golesLocalCalculados = (index % 3)
+            golesVisitanteCalculados = ((index + 1) % 3)
+          }
+        } else {
+          // 🛡️ SEGURIDAD: Si está "programado" o "en curso", borramos cualquier gol que venga de la API
+          golesLocalCalculados = null
+          golesVisitanteCalculados = null
+        }
+        
+        return {
+          ...partido,
+          estado: estadoCalculado,
+          golesLocal: golesLocalCalculados,
+          golesVisitante: golesVisitanteCalculados
+        }
+        
+      })
+    }
   },
 
   actions: {
+    actualizarFechaAdmin(nuevaFecha) {
+      this.fechaAdmin = new Date(nuevaFecha)
+    },
+
+    
     limpiarErrores() {
       this.error = ''
       this.errores = crearErroresVacios()
