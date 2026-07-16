@@ -54,7 +54,10 @@ const nombreUsuario = computed(() => {
 // puntosProde: ¡Lógica dinámica del Prode!
 // Calcula reactivamente los puntos acumulados sumando los aciertos de las predicciones del usuario.
 const puntosProde = computed(() => {
-  return calcularPuntosDesdePredicciones(predicciones.value, storeEstaticos.partidos)
+  const partidosFinalizados = (storeEstaticos.partidosConEstadoCalculado || [])
+    .filter((partido) => partido.estado === 'finalizado')
+
+  return calcularPuntosDesdePredicciones(predicciones.value, partidosFinalizados)
 })
 
 // --- 🔓 4. INTERFACES Y ACCIONES DE LOGIN/LOGOUT ---
