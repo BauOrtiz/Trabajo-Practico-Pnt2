@@ -5,52 +5,81 @@ import { guardarPredicciones, obtenerPredicciones } from '../services/prediccion
 import { useEstaticoStore } from '../stores/storeEstaticos'
 import { obtenerBanderaUrl } from '../utils/banderas.js'
 
-const estaticoStore = useEstaticoStore()
-const predicciones = ref([])
-const authStore = useAuthStore()
+// --- ⚙️ 1. INICIALIZACIÓN DE STORES ---
+const estaticoStore = useEstaticoStore() // Acceso a los datos globales del mundial y del Admin
+const authStore = useAuthStore()         // Acceso a los datos del usuario logueado
+const predicciones = ref([])            // Lista local de predicciones del usuario actual
 
+// --- 📍 2. ESTADOS REACTIVOS PARA FORMULARIOS ---
+// Formulario reactivo para la creación/edición de una predicción
 const prediccionForm = ref({ partidoId: '', golesLocal: 0, golesVisitante: 0 })
+// Si tiene un ID de predicción asignado, significa que estamos editando en lugar de creando una nueva
 const prediccionEditandoId = ref(null)
+// Mensaje de feedback para el usuario (éxito, error, advertencias)
 const mensaje = ref('')
 
-// 1. CORREGIDO: Escuchamos el getter reactivo que calcula el estado según la fecha de Admin
+// --- 📊 3. PROPIEDADES COMPUTADAS (REACTIVAS Y SEGURAS) ---
+
+// partidos: ¡Sincronizado con el Admin!
+// Consume la lista de partidos con los estados calculados dinámicamente según la fecha virtual.
 const partidos = computed(() => estaticoStore.partidosConEstadoCalculado)
 
+// cargando: Evalúa si los partidos se están cargando y la lista en memoria sigue vacía
 const cargando = computed(() => estaticoStore.loading && partidos.value.length === 0)
-const errorCarga = computed(() => estaticoStore.error || '') // Adaptado a tu propiedad .error del store
 
+// errorCarga: Trae reactivamente los errores de conexión del store general
+const errorCarga = computed(() => estaticoStore.error || '')
+
+// partidosDisponibles: Filtra para mostrar en la grilla solo los partidos habilitados para apostar
 const partidosDisponibles = computed(() => {
   return partidos.value.filter((partido) => partidoDisponible(partido))
 })
 
+// partidoSeleccionado: Devuelve los datos completos del partido seleccionado actualmente en el formulario
 const partidoSeleccionado = computed(() => {
   return obtenerPartidoPorId(prediccionForm.value.partidoId)
 })
 
+// prediccionesConPartido: Cruza los datos planos de tus predicciones guardadas en LocalStorage
+// con los objetos partidos dinámicos de Pinia para poder mostrar nombres de países y banderas en la lista.
 const prediccionesConPartido = computed(() => {
   return predicciones.value
     .map((prediccion) => ({
       ...prediccion,
       partido: obtenerPartidoPorId(prediccion.partidoId)
     }))
-    .filter((prediccion) => prediccion.partido)
+    .filter((prediccion) => prediccion.partido) // Seguridad: descarta apuestas de partidos inexistentes
 })
 
-// 2. CORREGIDO: Leemos el estado dinámico del partido calculado por el admin
+// --- 🛡️ 4. VALIDACIONES DE ESTADO VIRTUAL ---
+
+/**
+ * Un partido está disponible para apostar ÚNICAMENTE si está en estado 'programado'
+ * según la fecha virtual de simulación determinada por el Admin.
+ */
 function partidoDisponible(partido) {
   return partido && partido.estado === 'programado'
 }
 
-// 3. CORREGIDO: Buscamos dentro de la lista que tiene los estados al día
+/**
+ * Busca de manera segura un partido por su ID dentro del array reactivo del store
+ */
 function obtenerPartidoPorId(partidoId) {
   if (!partidos.value) return null
   return partidos.value.find((p) => String(p.id) === String(partidoId))
 }
 
+// --- 💾 5. MANEJO DE PERSISTENCIA (LOCALSTORAGE) ---
+
+/**
+ * Recupera las predicciones guardadas en el LocalStorage del navegador asociadas al usuario logueado
+ */
 function cargarDesdeLocalStorage() {
   predicciones.value = obtenerPredicciones(authStore.user?.id)
 }
 
+// Watcher: Si el usuario cambia (inicia o cierra sesión), volvemos a cargar las apuestas,
+// limpiamos los formularios y reseteamos los mensajes de alerta.
 watch(
   () => authStore.user?.id,
   () => {
@@ -60,42 +89,62 @@ watch(
   }
 )
 
+/**
+ * Blanquea el formulario de predicciones volviendo los valores a su estado inicial
+ */
 function limpiarFormulario() {
   prediccionForm.value = { partidoId: '', golesLocal: 0, golesVisitante: 0 }
   prediccionEditandoId.value = null
 }
 
+/**
+ * Asigna el ID del partido al formulario cuando el usuario hace clic en una tarjeta de la grilla
+ */
 function seleccionarPartido(partidoId) {
   prediccionForm.value.partidoId = partidoId
 }
 
+/**
+ * Validador helper para aplicar clases CSS de selección activa en la UI
+ */
 function estaSeleccionado(partidoId) {
   return String(prediccionForm.value.partidoId) === String(partidoId)
 }
 
+// --- 🎯 6. ACCIONES DE GESTIÓN DEL PRODE ---
+
+/**
+ * Guarda una predicción nueva o edita una existente aplicando rigurosas reglas de negocio
+ */
 function guardarPrediccion() {
   mensaje.value = ''
+  
+  // Regla 1: Bloqueo de seguridad si no hay sesión iniciada
   if (!authStore.user?.id) {
     mensaje.value = 'Debe iniciar sesión para guardar una predicción.'
     return
   }
 
   const partido = obtenerPartidoPorId(prediccionForm.value.partidoId)
+  // Regla 2: Obligatorio tener un partido seleccionado
   if (!partido) {
     mensaje.value = 'Debe seleccionar un partido.'
     return
   }
 
+  // Regla 3: Protección temporal contra viajes en el tiempo del Admin
   if (!partidoDisponible(partido)) {
     mensaje.value = 'No se puede predecir un partido ya iniciado o finalizado.'
     return
   }
 
+  // Regla 4: No se admiten goles negativos
   if (prediccionForm.value.golesLocal < 0 || prediccionForm.value.golesVisitante < 0) {
     mensaje.value = 'Los goles no pueden ser negativos.'
     return
   }
 
+  // Regla 5: Validación de duplicados (no apostar 2 veces al mismo partido)
   const yaExistePrediccion = predicciones.value.some((item) => {
     const mismoPartido = String(item.partidoId) === String(prediccionForm.value.partidoId)
     const esPrediccionEditada = item.id === prediccionEditandoId.value
@@ -107,7 +156,9 @@ function guardarPrediccion() {
     return
   }
 
+  // Proceso de guardado / edición
   if (prediccionEditandoId.value) {
+    // CASO A: Editar predicción existente
     const prediccion = predicciones.value.find(
       (item) => item.id === prediccionEditandoId.value
     )
@@ -118,8 +169,9 @@ function guardarPrediccion() {
     }
     mensaje.value = 'Predicción editada correctamente.'
   } else {
+    // CASO B: Crear predicción desde cero
     predicciones.value.push({
-      id: Date.now(),
+      id: Date.now(), // Generamos un ID único temporal basado en la estampa de tiempo actual
       partidoId: prediccionForm.value.partidoId,
       golesLocal: Number(prediccionForm.value.golesLocal),
       golesVisitante: Number(prediccionForm.value.golesVisitante)
@@ -127,16 +179,23 @@ function guardarPrediccion() {
     mensaje.value = 'Predicción guardada correctamente.'
   }
   
+  // Guardamos los datos actualizados de vuelta en el LocalStorage
   guardarPredicciones(predicciones.value, authStore.user.id)
-  limpiarFormulario()
+  limpiarFormulario() // Reseteamos campos
 }
 
+/**
+ * Carga los datos de una apuesta en el formulario de edición, validando previamente que el partido siga programado
+ */
 function editarPrediccion(prediccion) {
   const partido = obtenerPartidoPorId(prediccion.partidoId)
+  
+  // 🛡️ Seguridad: Si el partido ya arrancó o terminó según la fecha virtual, bloqueamos la edición
   if (!partido || !partidoDisponible(partido)) {
     mensaje.value = 'No se puede editar una predicción de un partido ya iniciado o finalizado.'
     return
   }
+  
   prediccionEditandoId.value = prediccion.id
   prediccionForm.value = {
     partidoId: prediccion.partidoId,
@@ -146,21 +205,33 @@ function editarPrediccion(prediccion) {
   mensaje.value = 'Editando predicción.'
 }
 
+/**
+ * Elimina definitivamente una apuesta del listado si el partido sigue programado
+ */
 function eliminarPrediccion(prediccion) {
   const partido = obtenerPartidoPorId(prediccion.partidoId)
+  
+  // 🛡️ Seguridad: Si el partido ya arrancó o terminó según la fecha virtual, bloqueamos la eliminación
   if (!partido || !partidoDisponible(partido)) {
     mensaje.value = 'No se puede eliminar una predicción de un partido ya iniciado o finalizado.'
     return
   }
+  
+  // Filtramos la lista local de apuestas para remover la seleccionada
   predicciones.value = predicciones.value.filter((item) => item.id !== prediccion.id)
+  // Actualizamos los cambios en LocalStorage
   guardarPredicciones(predicciones.value, authStore.user.id)
   mensaje.value = 'Predicción eliminada correctamente.'
 }
 
+/**
+ * Convierte un formato ISO a un string local argentino (DD/MM/AAAA HH:MM)
+ */
 function formatearFecha(fecha) {
   return new Date(fecha).toLocaleString('es-AR', { dateStyle: 'short', timeStyle: 'short' })
 }
 
+// --- 🚀 7. INICIALIZACIÓN ---
 onMounted(async () => {
   await cargarDesdeLocalStorage()
   await estaticoStore.cargarDatosMundial()
@@ -169,6 +240,7 @@ onMounted(async () => {
 
 <template>
   <section class="prode">
+    <!-- 🏟️ ENCABEZADO DE LA SECCIÓN -->
     <div class="encabezado">
       <p class="subtitulo">Mundial 2026</p>
       <h1>Prode</h1>
@@ -177,24 +249,34 @@ onMounted(async () => {
       </p>
     </div>
 
+    <!-- ⏳ CASO 1: Cargando datos desde el servidor -->
     <div v-if="cargando" class="estado-vista">
       Cargando partidos...
     </div>
 
+    <!-- ⚠️ CASO 2: Error de carga de partidos -->
     <div v-else-if="errorCarga" class="estado-vista estado-vista--error">
       {{ errorCarga }}
     </div>
 
+    <!-- ✅ CASO 3: Todo listo para interactuar con el Prode -->
     <div v-else>
       <form class="formulario" @submit.prevent="guardarPrediccion">
+        
+        <!-- COLUMNA IZQUIERDA: Grilla interactiva de Partidos Disponibles ('programados') -->
         <div class="bloque">
           <h2>Partidos disponibles</h2>
 
+          <!-- Alerta si el Admin adelantó la simulación al final del torneo y no quedan partidos jugables -->
           <div v-if="partidosDisponibles.length === 0" class="sin-predicciones">
             No hay partidos disponibles para predecir.
           </div>
 
           <div v-else class="partidos-grid">
+            <!-- 
+              Cada partido disponible se dibuja como un botón interactivo. 
+              Al hacer clic en uno, se llama a seleccionarPartido(id) para cargarlo en el formulario de la derecha.
+            -->
             <button
               v-for="partido in partidosDisponibles"
               :key="partido.id"
@@ -232,6 +314,7 @@ onMounted(async () => {
           </div>
         </div>
 
+        <!-- COLUMNA DERECHA: Formulario de carga de goles -->
         <div class="bloque resultado">
           <h2>
             {{ prediccionEditandoId ? 'Editar prediccion' : 'Nueva prediccion' }}
@@ -250,10 +333,12 @@ onMounted(async () => {
             </option>
           </select>
 
+          <!-- Resumen de texto rápido del partido seleccionado -->
           <p v-if="partidoSeleccionado" class="partido-resumen">
             {{ partidoSeleccionado.equipoLocal }} vs {{ partidoSeleccionado.equipoVisitante }}
           </p>
 
+          <!-- Inputs numéricos de goles para local y visitante -->
           <div class="goles">
             <div>
               <label for="golesLocal">Goles local</label>
@@ -276,11 +361,13 @@ onMounted(async () => {
             </div>
           </div>
 
+          <!-- Botonera del formulario -->
           <div class="botones-formulario">
             <button type="submit" class="principal">
               {{ prediccionEditandoId ? 'Guardar cambios' : 'Guardar prediccion' }}
             </button>
 
+            <!-- Botón condicional para salir del modo "edición" -->
             <button
               v-if="prediccionEditandoId"
               type="button"
@@ -293,10 +380,12 @@ onMounted(async () => {
         </div>
       </form>
 
+      <!-- Mensaje informativo de éxito o error al operar -->
       <p v-if="mensaje" class="mensaje">
         {{ mensaje }}
       </p>
 
+      <!-- 📋 SECCIÓN INFERIOR: Listado de Predicciones ya realizadas por el usuario -->
       <section class="mis-predicciones">
         <h2>Mis predicciones</h2>
 
@@ -321,6 +410,7 @@ onMounted(async () => {
                   <span>{{ prediccion.partido.equipoLocal }}</span>
                 </div>
 
+                <!-- Muestra los goles que pronosticó el usuario -->
                 <span class="resultado-prediccion">
                   {{ prediccion.golesLocal }} - {{ prediccion.golesVisitante }}
                 </span>
@@ -340,6 +430,7 @@ onMounted(async () => {
               </p>
             </div>
 
+            <!-- Acciones para editar o borrar una predicción guardada -->
             <div class="acciones">
               <button
                 type="button"

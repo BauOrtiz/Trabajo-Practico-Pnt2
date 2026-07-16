@@ -5,45 +5,64 @@ import { useEstaticoStore } from '../stores/storeEstaticos'
 import { useAuthStore } from '../stores/storeAuth'
 import { guardarPrediccion, obtenerPredicciones } from '../services/prediccionesService'
 
-const route = useRoute()
-const estaticoStore = useEstaticoStore()
-const authStore = useAuthStore()
+// --- 🧭 1. CONEXIÓN CON RUTAS Y STORES ---
+const route = useRoute()                 // Para capturar parámetros de la URL (el ID del partido)
+const estaticoStore = useEstaticoStore() // Store global para leer los partidos y el estado de la simulación
+const authStore = useAuthStore()         // Store de autenticación para saber qué usuario está logueado
 
+// --- ⚡ 2. LOGICA REACTIVA DE LA MÁQUINA DEL TIEMPO ---
+
+// partidoId: Captura reactivamente el ID del partido desde la URL (/partido/:id)
 const partidoId = computed(() => route.params.id)
 
-// ⚡ REACTIVIDAD CLAVE: El partido se computa buscando directamente sobre el getter reactivo del Admin
+// partido: ¡LA CLAVE DE LA REACTIVIDAD!
+// Busca el partido seleccionado directamente desde el getter dinámico del Admin.
+// Si el Admin cambia la fecha del sistema, este computed se vuelve a ejecutar al instante,
+// recalculando el estado del partido ('programado', 'en curso' o 'finalizado') en pantalla.
 const partido = computed(() => {
   return estaticoStore.partidosConEstadoCalculado.find(
     (p) => String(p.id) === String(partidoId.value)
   )
 })
 
-const loading = ref(true)
-const error = ref('')
+// --- 📍 3. ESTADOS LOCALES DEL COMPONENTE ---
+const loading = ref(true)                  // Estado de carga visual
+const error = ref('')                      // Mensaje de error general si el partido no existe
+const pronosticoLocal = ref(null)          // Goles locales que ingresa el usuario en el input
+const pronosticoVisitante = ref(null)      // Goles visitantes que ingresa el usuario en el input
+const mensajePronostico = ref('')          // Alerta o feedback visual al guardar (éxito/error)
+const mensajeTipo = ref('')                // Clase CSS del mensaje ('exito' o 'error')
 
-const pronosticoLocal = ref(null)
-const pronosticoVisitante = ref(null)
+// --- 💾 4. GESTIÓN DEL PRONÓSTICO DEL USUARIO ---
 
-const mensajePronostico = ref('')
-const mensajeTipo = ref('')
-
+/**
+ * Busca si el usuario actual ya guardó previamente una predicción para este partido.
+ * Si existe, precarga los goles en los inputs del formulario.
+ */
 function cargarPronosticoDelUsuario() {
+  // Limpiamos los inputs por defecto
   pronosticoLocal.value = null
   pronosticoVisitante.value = null
 
   if (!partido.value) return
 
+  // Buscamos en el localStorage/servicio la predicción de este usuario para este partido
   const prediccionGuardada = obtenerPredicciones(authStore.user?.id).find(
     (item) => String(item.partidoId) === String(partido.value.id)
   )
 
+  // Si existe una predicción previa, la inyectamos en los inputs
   if (prediccionGuardada) {
     pronosticoLocal.value = prediccionGuardada.golesLocal
     pronosticoVisitante.value = prediccionGuardada.golesVisitante
   }
 }
 
-// Recargamos el pronóstico si cambia el usuario o el partido calculado
+/**
+ * OBSERVADOR (Watcher):
+ * Si el usuario inicia/cierra sesión, o si cambiamos de partido navegando por la app,
+ * volvemos a buscar de inmediato si hay un pronóstico guardado para actualizar la vista.
+ */
 watch(
   () => [authStore.user?.id, partido.value?.id],
   () => {
@@ -51,6 +70,10 @@ watch(
   }
 )
 
+// --- 📅 5. FORMATEADORES ---
+/**
+ * Convierte una fecha ISO (string) en un formato legible para Argentina (ej: "15 de junio, 18:00")
+ */
 const unformatedDate = (fechaStr) => {
   if (!fechaStr) return ''
   const fecha = new Date(fechaStr)
@@ -62,8 +85,10 @@ const unformatedDate = (fechaStr) => {
   })
 }
 
+// --- 🚀 6. INICIALIZACIÓN ---
 onMounted(async () => {
   try {
+    // Aseguramos que los datos del mundial estén cargados en Pinia
     await estaticoStore.cargarDatosMundial()
 
     if (estaticoStore.errores?.partidos) {
@@ -71,6 +96,7 @@ onMounted(async () => {
       return
     }
 
+    // Si el partido existe, cargamos la predicción del usuario
     if (partido.value) {
       error.value = ''
       cargarPronosticoDelUsuario()
@@ -80,38 +106,44 @@ onMounted(async () => {
   } catch {
     error.value = 'Hubo un problema al cargar los datos.'
   } finally {
-    loading.value = false
+    loading.value = false // Apagamos el spinner de carga
   }
 })
 
+// --- 🎯 7. GUARDAR PREDICCIÓN (PRODE) ---
 const guardarPronostico = () => {
   mensajePronostico.value = ''
 
+  // Validación 1: Debe estar logueado para apostar
   if (!authStore.user?.id) {
     mensajePronostico.value = 'Debés iniciar sesión para guardar una predicción.'
     mensajeTipo.value = 'error'
     return
   }
 
+  // Validación 2: Inputs completos
   if (pronosticoLocal.value === null || pronosticoVisitante.value === null) {
     mensajePronostico.value = 'Completá ambos resultados antes de guardar.'
     mensajeTipo.value = 'error'
     return
   }
 
+  // Validación 3: No se permiten goles negativos
   if (pronosticoLocal.value < 0 || pronosticoVisitante.value < 0) {
     mensajePronostico.value = 'Los goles no pueden ser negativos.'
     mensajeTipo.value = 'error'
     return
   }
 
-  // 🛡️ Usamos el estado calculado reactivamente en vez del utilitario estático
+  // Validación 4: ¡Sincronizado con el Admin!
+  // Si el partido cambió de estado simulado (ahora está "en curso" o "finalizado"), abortamos.
   if (partido.value.estado !== 'programado') {
     mensajePronostico.value = 'No se puede predecir un partido ya iniciado o finalizado.'
     mensajeTipo.value = 'error'
     return
   }
 
+  // Si pasa las validaciones, guardamos la predicción en el localStorage del usuario
   guardarPrediccion(
     {
       partidoId: partido.value.id,
@@ -121,6 +153,7 @@ const guardarPronostico = () => {
     authStore.user.id
   )
 
+  // Feedback visual de éxito
   mensajePronostico.value = `Pronóstico guardado: ${partido.value.equipoLocal} ${pronosticoLocal.value} - ${pronosticoVisitante.value} ${partido.value.equipoVisitante}`
   mensajeTipo.value = 'exito'
 }
@@ -128,19 +161,24 @@ const guardarPronostico = () => {
 
 <template>
   <div class="partido-detalle-container">
+    <!-- ⏳ CASO 1: Cargando datos del partido -->
     <div v-if="loading" class="loading">
       Cargando datos del partido...
     </div>
 
+    <!-- ✅ CASO 2: Partido encontrado -->
     <div v-else-if="partido" class="partido-card">
+      
+      <!-- Badge dinámico de Grupo o Fase de eliminación directa -->
       <div class="grupo-badge">
         {{ partido.grupoId ? `Grupo ${partido.grupoId}` : partido.fase?.replaceAll('_', ' ') }}
       </div>
 
+      <!-- El Marcador principal del partido -->
       <div class="marcador">
         <div class="equipo">
           <h2>{{ partido.equipoLocal }}</h2>
-          <!-- Mostramos los goles reales de la API solo si el estado simulado es finalizado -->
+          <!-- ⚽ Muestra los goles REALES de la API únicamente si el partido ya finalizó según la simulación -->
           <span v-if="partido.estado === 'finalizado'" class="goles">
             {{ partido.golesLocal }}
           </span>
@@ -150,53 +188,46 @@ const guardarPronostico = () => {
 
         <div class="equipo">
           <h2>{{ partido.equipoVisitante }}</h2>
-          <!-- Mostramos los goles reales de la API solo si el estado simulado es finalizado -->
+          <!-- ⚽ Muestra los goles REALES de la API únicamente si el partido ya finalizó según la simulación -->
           <span v-if="partido.estado === 'finalizado'" class="goles">
             {{ partido.golesVisitante }}
           </span>
         </div>
       </div>
 
+      <!-- Información técnica del partido -->
       <div class="info-adicional">
         <p><strong>Fecha:</strong> {{ unformatedDate(partido.fecha) }}</p>
         <p>
           <strong>Estado:</strong> 
+          <!-- Badge dinámico con estilos CSS variables según el estado (.programado, .finalizado, .en_curso) -->
           <span class="estado-texto" :class="partido.estado">
             {{ partido.estado }}
           </span>
         </p>
       </div>
 
-      <!-- El Prode se muestra solo si el Admin marca el partido en estado programado -->
+      <!-- 🎮 SECCIÓN PRODE: Habilitada únicamente si el partido está en estado "programado" -->
       <div class="prode-section" v-if="partido.estado === 'programado'">
         <h3>Cargar mi Pronóstico</h3>
 
+        <!-- Mensajes de éxito o error al guardar -->
         <p v-if="mensajePronostico" :class="['mensaje', mensajeTipo]">
           {{ mensajePronostico }}
         </p>
 
+        <!-- Mensaje y botón de redirección si el usuario no inició sesión -->
         <div v-if="!authStore.user?.id" class="login-requerido">
           <p>Iniciá sesión para cargar tu pronóstico.</p>
           <router-link to="/login" class="btn-login">Ir al login</router-link>
         </div>
 
+        <!-- Formulario con inputs numéricos reactivos (v-model) -->
         <template v-else>
           <div class="prode-inputs">
-            <input
-              v-model.number="pronosticoLocal"
-              type="number"
-              min="0"
-              placeholder="0"
-              class="input-gol"
-            />
+            <input v-model.number="pronosticoLocal" type="number" min="0" placeholder="0" class="input-gol" />
             <span class="guion">-</span>
-            <input
-              v-model.number="pronosticoVisitante"
-              type="number"
-              min="0"
-              placeholder="0"
-              class="input-gol"
-            />
+            <input v-model.number="pronosticoVisitante" type="number" min="0" placeholder="0" class="input-gol" />
           </div>
           <button @click="guardarPronostico" class="btn-guardar">
             Confirmar Pronóstico
@@ -205,10 +236,12 @@ const guardarPronostico = () => {
       </div>
     </div>
 
+    <!-- ⚠️ CASO 3: Ocurrió un error en la carga de datos -->
     <div v-else-if="error" class="error">
       {{ error }}
     </div>
 
+    <!-- 🚫 CASO 4: El ID de la URL no coincide con ningún partido -->
     <div v-else class="error">
       No se encontró el partido especificado.
     </div>

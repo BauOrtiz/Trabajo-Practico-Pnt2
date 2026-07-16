@@ -1,5 +1,3 @@
-import { obtenerEstadoPartido } from './estadoPartido'
-
 // Devuelve quien gano el partido segun los goles.
 function resultado(golesLocal, golesVisitante) {
   if (golesLocal > golesVisitante) return 'local'
@@ -9,7 +7,7 @@ function resultado(golesLocal, golesVisitante) {
 
 // Calcula los puntos de una prediccion contra un partido real
 export function calcularPuntosPrediccion(prediccion, partido) {
-  if (!prediccion || !partido || obtenerEstadoPartido(partido) !== 'finalizado') {
+  if (!prediccion || !partido || partido.estado !== 'finalizado') {
     return 0
   }
 
