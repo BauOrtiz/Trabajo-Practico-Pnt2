@@ -133,7 +133,7 @@ onMounted(async () => {
 <template>
   <main class="ranking-page">
     <!-- ENCABEZADO Y SELECTOR DE GRUPOS -->
-    <section class="encabezado">
+    <section class="encabezado", v-if="!estaticoStore.faseGruposFinalizada">
       <div>
         <h1>Ranking</h1>
         <p>Posiciones reales y posiciones segun tus predicciones.</p>
@@ -156,7 +156,7 @@ onMounted(async () => {
     </section>
     
     <!-- CONTENEDOR DE TABLAS DE POSICIONES EN PARALELO (REAL VS PRODE) -->
-    <section v-else class="tablas-ranking">
+    <section v-else class="tablas-ranking", v-if="!estaticoStore.faseGruposFinalizada"">
       
       <!-- TABLA 1: Ranking Real (Mundial en curso según Admin) -->
       <article class="tabla-card">
