@@ -111,7 +111,7 @@ const rankingApostado = computed(() => {
 
 // --- 🚀 5. INICIALIZACIÓN DE LA VISTA (onMounted) ---
 onMounted(async () => {
-  await cargarPredicciones()          // Precarga predicciones personales
+  cargarPredicciones()                     // Precarga predicciones personales
   await estaticoStore.cargarDatosMundial() // Asegura que los datos globales de partidos estén listos
   
   try {

@@ -27,10 +27,6 @@ const error = computed(() => estaticoStore.errores.partidos || '')
  */
 async function finalizarFaseGrupos() {
   mensaje.value = ''
-  if (!authStore.isAdmin) {
-    mensaje.value = 'Solo los administradores pueden finalizar la fase de grupos.'
-    return
-  }
   
   finalizandoGrupos.value = true // Deshabilita el botón mientras procesa
   try {
@@ -49,11 +45,6 @@ async function finalizarFaseGrupos() {
  */
 function restablecerFaseGrupos() {
   mensaje.value = ''
-  if (!authStore.isAdmin) {
-    mensaje.value = 'Solo los administradores pueden restablecer la fase de grupos.'
-    return
-  }
-  
   estaticoStore.restablecerFaseGrupos()
   mensaje.value = 'Fase de grupos restablecida correctamente.'
 }
