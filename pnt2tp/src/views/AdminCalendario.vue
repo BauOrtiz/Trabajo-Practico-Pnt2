@@ -71,36 +71,38 @@ onMounted(async () => {
     🛠️ SECCIÓN 1: PANEL DE FECHA VIRTUAL (MÁQUINA DEL TIEMPO)
     ========================================================================
   -->
-  <div class="panel-admin" style="background: #0f172a; color: white; padding: 20px; border-radius: 12px; margin-bottom: 24px; border: 1.5px solid #10b981;">
-    <h3 style="margin-top: 0; color: #10b981; display: flex; align-items: center; gap: 8px;">
-      ⚙️ Panel de Control - Admin
-    </h3>
-    <p style="font-size: 14px; margin: 4px 0 12px 0; color: #94a3b8;">
-      Mové la fecha del sistema para simular qué partidos están programados, jugándose o finalizados.
-    </p>
+    <section v-if="authStore.isAdmin" class="encabezado">
 
-    <div style="display: flex; align-items: center; gap: 15px; flex-wrap: wrap;">
-      <div>
-        <label style="display: block; font-size: 12px; color: #94a3b8; margin-bottom: 4px;">FECHA VIRTUAL ACTUAL</label>
-        <input 
-          type="datetime-local" 
-          :value="new Date(estaticoStore.fechaAdmin.getTime() - estaticoStore.fechaAdmin.getTimezoneOffset() * 60000).toISOString().slice(0, 16)"
-          @input="e => estaticoStore.actualizarFechaAdmin(e.target.value)"
-          style="padding: 8px 12px; border-radius: 8px; border: 1px solid #334155; background: #1e293b; color: white; font-weight: bold;" 
-        />
+      <div class="panel-admin" style="background: #0f172a; color: white; padding: 20px; border-radius: 12px; margin-bottom: 24px; border: 1.5px solid #10b981;">
+        <h3 style="margin-top: 0; color: #10b981; display: flex; align-items: center; gap: 8px;">
+          ⚙️ Panel de Control - Admin
+        </h3>
+        <p style="font-size: 14px; margin: 4px 0 12px 0; color: #94a3b8;">
+          Mové la fecha del sistema para simular qué partidos están programados, jugándose o finalizados.
+        </p>
+
+        <div style="display: flex; align-items: center; gap: 15px; flex-wrap: wrap;">
+          <div>
+            <label style="display: block; font-size: 12px; color: #94a3b8; margin-bottom: 4px;">FECHA VIRTUAL ACTUAL</label>
+            <input 
+              type="datetime-local" 
+              :value="new Date(estaticoStore.fechaAdmin.getTime() - estaticoStore.fechaAdmin.getTimezoneOffset() * 60000).toISOString().slice(0, 16)"
+              @input="e => estaticoStore.actualizarFechaAdmin(e.target.value)"
+              style="padding: 8px 12px; border-radius: 8px; border: 1px solid #334155; background: #1e293b; color: white; font-weight: bold;" 
+            />
+          </div>
+
+          <div style="align-self: flex-end; display: flex; gap: 8px;">
+            <button @click="estaticoStore.actualizarFechaAdmin(new Date())" style="padding: 8px 14px; border-radius: 8px; background: #334155; color: white; border: none; cursor: pointer; font-weight: 500;" >
+              ⏰ Resetear a Hoy
+            </button>
+            <button @click="estaticoStore.actualizarFechaAdmin('2026-06-11T16:00')" style="padding: 8px 14px; border-radius: 8px; background: #2563eb; color: white; border: none; cursor: pointer; font-weight: 500;" >
+              ⚽ Fase de Grupos
+            </button>
+          </div>
+        </div>
       </div>
-
-      <div style="align-self: flex-end; display: flex; gap: 8px;">
-        <button @click="estaticoStore.actualizarFechaAdmin(new Date())" style="padding: 8px 14px; border-radius: 8px; background: #334155; color: white; border: none; cursor: pointer; font-weight: 500;" >
-          ⏰ Resetear a Hoy
-        </button>
-        <button @click="estaticoStore.actualizarFechaAdmin('2026-06-11T16:00')" style="padding: 8px 14px; border-radius: 8px; background: #2563eb; color: white; border: none; cursor: pointer; font-weight: 500;" >
-          ⚽ Fase de Grupos
-        </button>
-      </div>
-    </div>
-  </div>
-
+    </section>
   <!-- 
     ========================================================================
     📅 SECCIÓN 2: CONTROL GLOBAL DE LA FASE DE GRUPOS
