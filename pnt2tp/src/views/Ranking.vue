@@ -7,115 +7,105 @@ import { calcularUsuariosConPuntos } from '../services/puntosService'
 import { useEstaticoStore } from '../stores/storeEstaticos'
 import { obtenerBanderaUrl } from '../utils/banderas.js'
 
-// --- ⚙️ 1. CONEXIÓN CON STORES Y SERVICIOS ---
-const authStore = useAuthStore()         // Store global para validar sesión y usuario actual
-const estaticoStore = useEstaticoStore() // Store global para obtener partidos dinámicos del Admin
 
-// --- 📍 2. ESTADOS REACTIVOS LOCALES ---
-const predicciones = ref([])          // Predicciones personales cargadas por el usuario autenticado
-const grupoSeleccionado = ref('A')    // Grupo actual de visualización (por defecto el grupo A)
-const usuarios = ref([])              // Lista total de usuarios recuperada de MockAPI
-const cargandoAmigos = ref(true)      // Flag visual para indicar que la tabla de amigos está en proceso de carga
-const errorAmigos = ref('')           // Captura fallas de red al pegarle a MockAPI
+const authStore = useAuthStore()         
+const estaticoStore = useEstaticoStore() 
 
-// Ruta externa del backend simulado en MockAPI para persistir los usuarios del Prode
+
+const predicciones = ref([])          
+const grupoSeleccionado = ref('A')    
+const usuarios = ref([])              
+const cargandoAmigos = ref(true)      
+const errorAmigos = ref('')           
+
+
 const API_USUARIOS = 'https://6a2b1b9ab687a7d5cbc4de36.mockapi.io/prode/Usuarios'
 
-// --- ⚡ 3. PROPIEDADES COMPUTADAS Y FILTRADO TEMPORAL ---
 
-// partidos: ¡Sincronizado con el Admin!
-// Recupera la lista de partidos con sus estados virtuales según la fecha elegida.
+
+
 const partidos = computed(() => estaticoStore.partidosConEstadoCalculado || [])
 
-// 🛡️ FILTRO DE SEGURIDAD CLAVE:
-// Creamos una lista reactiva que contiene ÚNICAMENTE los partidos en estado 'finalizado'.
-// Esto evita que partidos programados o en curso se procesen, impidiendo empates 0-0 ficticios en las tablas.
+
 const partidosFinalizados = computed(() => {
   return partidos.value.filter(partido => partido.estado === 'finalizado')
 })
 
-// cargando: Evalúa si los datos de Pinia están cargándose y aún no hay partidos locales en memoria
+
 const cargando = computed(() => estaticoStore.loading && partidos.value.length === 0)
 
-// error: Expone de forma limpia cualquier error que surja al traer partidos del store
+
 const error = computed(() => estaticoStore.error || '')
 
-// usuariosOrdenados: Recalcula y ordena dinámicamente la tabla de posiciones de tus amigos.
-// Utiliza la lista segura 'partidosFinalizados' para evaluar los aciertos contra los resultados simulados.
+
 const usuariosOrdenados = computed(() => {
   if (!partidosFinalizados.value || partidosFinalizados.value.length === 0) return []
-  
-  // Calcula los puntos cruzando pronósticos de cada usuario contra resultados finalizados virtuales
+
+
   const usuariosConPuntos = calcularUsuariosConPuntos(usuarios.value, partidosFinalizados.value)
-  
-  // Retorna una copia ordenada de mayor a menor según el puntaje total acumulado
+
+
   return [...usuariosConPuntos].sort((a, b) => (b.puntosTotales || 0) - (a.puntosTotales || 0))
 })
 
-// --- 🛡️ 4. FUNCIONES DE APOYO ---
 
-/**
- * Validador helper para saber si el usuario de la fila es el que tiene la sesión activa (resalta su fila)
- */
+
+
+
 function esUsuarioActual(usuario) {
   return authStore.user && authStore.user.id === usuario.id
 }
 
-/**
- * Genera el avatar en texto del usuario extrayendo las iniciales de su nombre y apellido
- */
+
+
 function iniciales(nombre) {
   if (!nombre) return '?'
   return nombre.split(' ').map((parte) => parte[0]).join('').toUpperCase().slice(0, 2)
 }
 
-/**
- * Devuelve un color hexadecimal simulando una medalla de Oro, Plata o Bronce para el top 3 de amigos
- */
+
+
 function medallaColor(pos) {
-  if (pos === 0) return '#f0b429' // Oro
-  if (pos === 1) return '#aaaaaa' // Plata
-  if (pos === 2) return '#cd7f32' // Bronce
-  return '#555'                   // Resto de los puestos
+  if (pos === 0) return '#f0b429' 
+  if (pos === 1) return '#aaaaaa' 
+  if (pos === 2) return '#cd7f32' 
+  return '#555'                   
 }
 
-/**
- * Trae de forma persistente tus predicciones guardadas en el LocalStorage
- */
+
+
 function cargarPredicciones() {
   predicciones.value = obtenerPredicciones(authStore.user?.id)
 }
 
-// Watcher: Si el usuario actual cambia (inicia o cierra sesión), cargamos sus predicciones correspondientes
+
 watch(
   () => authStore.user?.id,
   cargarPredicciones
 )
 
-// grupos: Analiza de forma inteligente todos los partidos del fixture para saber qué grupos existen
+
 const grupos = computed(() => obtenerGruposDisponibles(partidos.value))
 
-// rankingReal: Genera la tabla de posiciones real del grupo seleccionado,
-// computando exclusivamente los partidos que el Admin ya marcó como 'finalizados'.
+
 const rankingReal = computed(() => {
   if (partidosFinalizados.value.length === 0) return []
   return calcularTablaGrupo(partidosFinalizados.value, grupoSeleccionado.value)
 })
 
-// rankingApostado: Genera la tabla de posiciones calculando "qué pasaría" en la tabla del grupo
-// de acuerdo a los pronósticos cargados por el usuario para los partidos finalizados simulados.
+
 const rankingApostado = computed(() => {
   if (partidosFinalizados.value.length === 0) return []
   return calcularTablaGrupo(partidosFinalizados.value, grupoSeleccionado.value, predicciones.value)
 })
 
-// --- 🚀 5. INICIALIZACIÓN DE LA VISTA (onMounted) ---
+
 onMounted(async () => {
-  cargarPredicciones()                     // Precarga predicciones personales
-  await estaticoStore.cargarDatosMundial() // Asegura que los datos globales de partidos estén listos
-  
+  cargarPredicciones()                     
+  await estaticoStore.cargarDatosMundial() 
+
   try {
-    // Pegamos a MockAPI para traer a todos los participantes registrados en el Prode
+
     const res = await fetch(API_USUARIOS)
     if (!res.ok) {
       throw new Error('No se pudo cargar la lista de usuarios.')
@@ -125,14 +115,14 @@ onMounted(async () => {
   } catch (errorUsuarios) {
     errorAmigos.value = 'No se pudo cargar el ranking de amigos.'
   } finally {
-    cargandoAmigos.value = false // Apaga el loading del panel de amigos
+    cargandoAmigos.value = false 
   }
 })
 </script>
 
 <template>
   <main class="ranking-page">
-    <!-- ENCABEZADO Y SELECTOR DE GRUPOS -->
+
     <section class="encabezado", v-if="!estaticoStore.faseGruposFinalizada">
       <div>
         <h1>Ranking</h1>
@@ -147,18 +137,18 @@ onMounted(async () => {
       </label>
     </section>
 
-    <!-- ESTADOS DE ESPERA Y RED -->
+
     <section v-if="cargando" class="mensaje">
       Cargando ranking...
     </section>
     <section v-else-if="error" class="mensaje error">
       {{ error }}
     </section>
-    
-    <!-- CONTENEDOR DE TABLAS DE POSICIONES EN PARALELO (REAL VS PRODE) -->
+
+
     <section v-else class="tablas-ranking", v-if="!estaticoStore.faseGruposFinalizada"">
-      
-      <!-- TABLA 1: Ranking Real (Mundial en curso según Admin) -->
+
+
       <article class="tabla-card">
         <div class="tabla-header">
           <h2>Ranking real</h2>
@@ -195,7 +185,7 @@ onMounted(async () => {
         </table>
       </article>
 
-      <!-- TABLA 2: Ranking Apostado (Cómo quedaría el grupo según tus predicciones) -->
+
       <article class="tabla-card">
         <div class="tabla-header">
           <h2>Mi ranking apostado</h2>
@@ -233,12 +223,12 @@ onMounted(async () => {
       </article>
     </section>
 
-    <!-- TABLA 3: Ranking de amigos (Competencia del Prode con tus compañeros) -->
+
     <section class="ranking-amigos">
       <section v-if="!estaticoStore.faseGruposFinalizada"><h2 class="amigos-titulo">Ranking de amigos Grupos</h2></section>
       <section v-if="estaticoStore.faseGruposFinalizada"><h2 class="amigos-titulo">Ranking de amigos Fase Eliminatorias</h2></section>
 
-      
+
       <div v-if="cargandoAmigos" class="mensaje">Cargando amigos...</div>
       <div v-else-if="errorAmigos" class="mensaje error">
         {{ errorAmigos }}
@@ -247,7 +237,7 @@ onMounted(async () => {
         No hay usuarios registrados todavia.
       </div>
       <template v-else>
-        <!-- Recorre los usuarios calculando sus aciertos y ordenándolos de mayor a menor puntaje -->
+
         <div v-for="(usuario, idx) in usuariosOrdenados" :key="usuario.id" :class="['amigo-card', esUsuarioActual(usuario) ? 'amigo-card--propio' : '']" >
           <span class="amigo-pos" :style="{ color: medallaColor(idx) }">{{ idx + 1 }}</span>
           <div class="amigo-avatar">{{ iniciales(usuario.nombre) }}</div>

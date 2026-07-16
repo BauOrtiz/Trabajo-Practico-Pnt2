@@ -3,30 +3,27 @@ import { computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useEstaticoStore } from '../stores/storeEstaticos'
 
-// --- 🧭 1. CONEXIÓN CON ENRUTADOR Y STORE ---
-const router = useRouter()               // Permite navegar programáticamente a otras rutas de la app
-const estaticoStore = useEstaticoStore() // Store de Pinia con la información de los estadios en memoria
 
-// --- 🧭 2. NAVEGACIÓN ---
-/**
- * Redirige al usuario a la pantalla de detalle del estadio utilizando su ID único
- * @param {string|number} id - Identificador del estadio seleccionado
- */
+const router = useRouter()               
+const estaticoStore = useEstaticoStore() 
+
+
+
 function detalleEstadio(id) {
   router.push(`/estadios/${id}`)
 }
 
-// --- 📊 3. PROPIEDADES COMPUTADAS (REACTIVAS) ---
 
-// cargando: Evalúa si los datos de la API se están solicitando y la lista local en el store sigue vacía
+
+
 const cargando = computed(() => estaticoStore.loading && estaticoStore.estadios.length === 0)
 
-// error: Captura de manera reactiva cualquier fallo de conexión al traer los estadios
+
 const error = computed(() => estaticoStore.errores.estadios || '')
 
-// --- 🚀 4. INICIALIZACIÓN ---
+
 onMounted(async () => {
-  // Al montar la pantalla, aseguramos que los datos estáticos del mundial (estadios incluidos) estén disponibles
+
   await estaticoStore.cargarDatosMundial()
 })
 </script>
@@ -35,36 +32,33 @@ onMounted(async () => {
   <main class="estadios-page">
     <h1 class="titulo-estadios">Estadios</h1>
 
-    <!-- ⏳ CASO 1: Los datos todavía se están cargando desde Mockachino -->
+
     <section v-if="cargando" class="mensaje">
       Cargando estadios...
     </section>
 
-    <!-- ⚠️ CASO 2: Error al intentar cargar los estadios desde el servidor -->
+
     <section v-else-if="error" class="mensaje mensaje--error">
       {{ error }}
     </section>
 
-    <!-- ✅ CASO 3: Todo perfecto, renderiza la lista general de sedes -->
+
     <section v-else class="estadios-container">
-      <!-- 
-        Itera sobre el array de estadios guardados en Pinia.
-        El atributo 'loading="lazy"' en la etiqueta img optimiza la carga de la página, 
-        descargando las fotos solo cuando entran en la pantalla del usuario.
-      -->
+
+
       <article
         v-for="estadio in estaticoStore.estadios"
         :key="estadio.id"
         class="estadio-card"
         @click="detalleEstadio(estadio.id)"
       >
-        <!-- Contenedor visual de la imagen y el badge de país -->
+
         <div class="card-image-container">
           <img :src="estadio.imagen" :alt="estadio.nombre" loading="lazy" />
           <span class="badge-pais">{{ estadio.pais }}</span>
         </div>
 
-        <!-- Contenedor con la información técnica del estadio -->
+
         <div class="card-content-container">
           <h3>{{ estadio.nombre }}</h3>
 

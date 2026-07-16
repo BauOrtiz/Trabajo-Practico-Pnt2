@@ -3,39 +3,36 @@ import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/storeAuth'
 
-// --- ⚙️ 1. CONEXIÓN CON ENRUTADOR Y STORES ---
-const authStore = useAuthStore() // Store global para gestionar el registro de nuevos usuarios
-const router = useRouter()       // Enrutador de Vue para redirigir programáticamente
 
-// --- 📍 2. ESTADOS REACTIVOS LOCALES ---
-const email = ref('')       // Almacena el correo ingresado para la nueva cuenta
-const contrasenia = ref('') // Almacena la contraseña del nuevo usuario
-const nombre = ref('')      // Almacena el nombre del nuevo participante
+const authStore = useAuthStore() 
+const router = useRouter()       
 
-// --- 👤 3. FUNCIONES DE NEGOCIO ---
 
-/**
- * Gestiona el envío del formulario para crear un nuevo usuario
- */
+const email = ref('')       
+const contrasenia = ref('') 
+const nombre = ref('')      
+
+
+
+
+
 async function registrarse() {
-  // Validación de seguridad local básica: aseguramos que ningún campo viaje vacío
+
   if (!email.value || !contrasenia.value || !nombre.value) {
     return
   }
 
-  // Llama a la acción register del store de Pinia para persistir el nuevo usuario
+
   const exitoso = await authStore.register(nombre.value, email.value, contrasenia.value)
 
-  // Si la creación fue exitosa, el store inicia sesión automáticamente y redirigimos al Home
+
   if (exitoso) {
     router.push('/home')
   }
 }
 
-/**
- * Redirige al usuario de vuelta a la pantalla de Home con el query param de login activo.
- * Esto es muy útil si tenés un modal de login en el Home o querés disparar esa acción de forma controlada.
- */
+
+
 function irAlLogin() {
   router.push({
     path: '/home',
@@ -43,10 +40,9 @@ function irAlLogin() {
   })
 }
 
-// --- 🚀 4. CICLO DE VIDA (PROTECCIÓN DE RUTA) ---
+
 onMounted(async () => {
-  // 🛡️ Filtro de seguridad preventivo: si un usuario ya está logueado,
-  // no tiene sentido que intente registrar una cuenta nueva, por lo que lo mandamos directo al Home.
+
   if (authStore.isLoggedIn) {
     await router.push('/home')
   }
@@ -56,8 +52,8 @@ onMounted(async () => {
 <template>
   <main class="registro-page">
     <section class="registro-card">
-      
-      <!-- 📝 ENCABEZADO DE LA TARJETA -->
+
+
       <div class="encabezado">
         <p class="subtitulo">Mundial 2026</p>
         <h1>Crear cuenta</h1>
@@ -66,10 +62,10 @@ onMounted(async () => {
         </p>
       </div>
 
-      <!-- El modificador '.prevent' bloquea el comportamiento nativo del navegador de recargar la página -->
+
       <form class="registro-form" @submit.prevent="registrarse">
-        
-        <!-- Input para ingresar el Nombre completo -->
+
+
         <div class="form-group">
           <label for="nombre">Nombre</label>
           <input
@@ -82,7 +78,7 @@ onMounted(async () => {
           />
         </div>
 
-        <!-- Input para ingresar el Correo Electrónico -->
+
         <div class="form-group">
           <label for="email">Email</label>
           <input
@@ -95,7 +91,7 @@ onMounted(async () => {
           />
         </div>
 
-        <!-- Input oculto para definir la Contraseña -->
+
         <div class="form-group">
           <label for="contrasenia">Contraseña</label>
           <input
@@ -108,19 +104,17 @@ onMounted(async () => {
           />
         </div>
 
-        <!-- ⚠️ Alerta de error: se muestra dinámicamente si el store de Pinia reporta que el email ya existe o hay fallas de red -->
+
         <p v-if="authStore.error" class="error-msg">{{ authStore.error }}</p>
 
-        <!-- 
-          Botón de envío con estado dinámico de carga:
-          Si el store está cargando (loading === true), el botón se deshabilita para evitar clics múltiples.
-        -->
+
+
         <button type="submit" :disabled="authStore.loading">
           {{ authStore.loading ? 'Creando cuenta...' : 'Registrarse' }}
         </button>
       </form>
 
-      <!-- Botón secundario para los usuarios que ya poseen una cuenta activa -->
+
       <button type="button" class="login-link" @click="irAlLogin">
         Ya tengo cuenta
       </button>

@@ -3,40 +3,39 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/storeAuth'
 
-// --- ⚙️ 1. CONEXIÓN CON ENRUTADOR Y STORES ---
-const authStore = useAuthStore() // Store global para leer la sesión del usuario y despachar actualizaciones
-const router = useRouter()       // Enrutador para redirigir si no hay sesión iniciada
 
-// --- 📍 2. ESTADOS REACTIVOS LOCALES (DATOS PERSONALES) ---
+const authStore = useAuthStore() 
+const router = useRouter()       
+
+
 const nombre = ref('')
 const apellido = ref('')
 const edad = ref('')
 const email = ref('')
 
-// --- 🔒 3. ESTADOS REACTIVOS LOCALES (CAMBIO DE CONTRASEÑA) ---
+
 const passwordActual = ref('')
 const passwordNueva = ref('')
 const repetirPasswordNueva = ref('')
 
-// --- 💬 4. MENSAJERÍA DE FEEDBACK ---
+
 const mensajeExito = ref('')
 const mensajeError = ref('')
 
-// --- 📊 5. PROPIEDADES COMPUTADAS (REACTIVAS) ---
 
-// usuarioLogueado: Atajo reactivo para vigilar la información del usuario autenticado en Pinia
+
+
 const usuarioLogueado = computed(() => authStore.user)
 
-// puedeGuardarPerfil: Regla de validación local. El botón se habilitará únicamente si estos campos no están vacíos
+
 const puedeGuardarPerfil = computed(() => {
   return nombre.value.trim() !== '' && email.value.trim() !== ''
 })
 
-// --- 🛠️ 6. FUNCIONES DE APOYO Y FLUJO ---
 
-/**
- * Carga o precarga los datos personales del usuario desde el store de Pinia hacia los inputs del formulario
- */
+
+
+
 function cargarDatosPerfil() {
   if (authStore.user) {
     nombre.value = authStore.user.nombre || ''
@@ -46,43 +45,40 @@ function cargarDatosPerfil() {
   }
 }
 
-/**
- * Limpia cualquier mensaje de éxito o de error en la pantalla antes de procesar una nueva petición
- */
+
+
 function limpiarMensajes() {
   mensajeExito.value = ''
   mensajeError.value = ''
 }
 
-// --- 🚀 7. CICLO DE VIDA Y OBSERVADORES ---
+
 
 onMounted(async () => {
-  // 🛡️ Filtro de seguridad: Si no está logueado, lo saca de la pantalla y lo manda al Home con un flag para abrir el Login
+
   if (!authStore.isLoggedIn) {
     await router.push('/home?login=1')
     return
   }
 
-  // Si hay sesión iniciada, cargamos los datos del perfil
+
   await cargarDatosPerfil()
 })
 
-// watch(authStore.user?.id): Si el ID del usuario cambia (ej: cierra sesión e ingresa otro),
-// actualizamos inmediatamente los inputs con la información de la nueva cuenta.
+
 watch(
   () => authStore.user?.id,
   cargarDatosPerfil
 )
 
-// --- 💾 8. PETICIONES AL STORE (ACCIONES) ---
 
-/**
- * Despacha la actualización de la información personal del usuario
- */
+
+
+
 async function guardarPerfil() {
   limpiarMensajes()
 
-  // Validación de seguridad secundaria por si se intenta forzar la petición
+
   if (!puedeGuardarPerfil.value) {
     mensajeError.value = 'El nombre y el email son obligatorios.'
     return
@@ -95,41 +91,40 @@ async function guardarPerfil() {
     email: email.value
   }
 
-  // Envía los datos actualizados a la API a través del store de Pinia
+
   const perfilActualizado = await authStore.actualizarPerfil(datosActualizados)
 
   if (perfilActualizado) {
     mensajeExito.value = 'Perfil actualizado correctamente.'
   } else {
-    mensajeError.value = authStore.error // Muestra el mensaje de error que devolvió la API
+    mensajeError.value = authStore.error 
   }
 }
 
-/**
- * Ejecuta validaciones locales y despacha la solicitud de cambio de clave
- */
+
+
 async function guardarNuevaPassword() {
   limpiarMensajes()
 
-  // Validación 1: Todos los campos del formulario de contraseña son requeridos
+
   if (!passwordActual.value || !passwordNueva.value || !repetirPasswordNueva.value) {
     mensajeError.value = 'Completá todos los campos de contraseña.'
     return
   }
 
-  // Validación 2: Largo mínimo de la nueva contraseña
+
   if (passwordNueva.value.length < 6) {
     mensajeError.value = 'La nueva contraseña debe tener al menos 6 caracteres.'
     return
   }
 
-  // Validación 3: Coincidencia entre la nueva contraseña y su repetición
+
   if (passwordNueva.value !== repetirPasswordNueva.value) {
     mensajeError.value = 'Las nuevas contraseñas no coinciden.'
     return
   }
 
-  // Envía la contraseña vieja y nueva al store de autenticación para cambiarla en el servidor
+
   const passwordCambiada = await authStore.cambiarPassword(
     passwordActual.value,
     passwordNueva.value
@@ -138,20 +133,20 @@ async function guardarNuevaPassword() {
   if (passwordCambiada) {
     mensajeExito.value = 'Contraseña actualizada correctamente.'
 
-    // Reseteamos los campos de contraseña por seguridad para que queden limpios
+
     passwordActual.value = ''
     passwordNueva.value = ''
     repetirPasswordNueva.value = ''
   } else {
-    mensajeError.value = authStore.error // Expone el error retornado por la base de datos (ej: clave actual incorrecta)
+    mensajeError.value = authStore.error 
   }
 }
 </script>
 
 <template>
   <main class="perfil-page">
-    
-    <!-- ✅ CASO A: Hay un usuario autenticado y mostramos sus paneles de configuración -->
+
+
     <section v-if="usuarioLogueado" class="perfil-card">
       <h1>Mi perfil</h1>
 
@@ -159,7 +154,7 @@ async function guardarNuevaPassword() {
         Desde esta sección podés consultar y modificar tus datos personales.
       </p>
 
-      <!-- Carteles dinámicos para feedback en tiempo real -->
+
       <p v-if="mensajeExito" class="mensaje mensaje--exito">
         {{ mensajeExito }}
       </p>
@@ -168,7 +163,7 @@ async function guardarNuevaPassword() {
         {{ mensajeError }}
       </p>
 
-      <!-- 📝 FORMULARIO 1: Datos Personales -->
+
       <section class="bloque-formulario">
         <h2>Datos personales</h2>
 
@@ -211,7 +206,7 @@ async function guardarNuevaPassword() {
           </label>
         </div>
 
-        <!-- El botón se deshabilita si el store está procesando (loading) o si faltan datos requeridos -->
+
         <button
           class="btn-principal"
           :disabled="authStore.loading || !puedeGuardarPerfil"
@@ -221,7 +216,7 @@ async function guardarNuevaPassword() {
         </button>
       </section>
 
-      <!-- 🔑 FORMULARIO 2: Seguridad y cambio de Contraseña -->
+
       <section class="bloque-formulario">
         <h2>Cambiar contraseña</h2>
 
@@ -264,7 +259,7 @@ async function guardarNuevaPassword() {
       </section>
     </section>
 
-    <!-- 🚫 CASO B: No hay nadie logueado (pantalla de contingencia preventiva) -->
+
     <section v-else-if="!usuarioLogueado" class="perfil-card">
       <h1>No hay usuario logueado</h1>
       <p class="descripcion">
@@ -272,7 +267,7 @@ async function guardarNuevaPassword() {
       </p>
     </section>
 
-    <!-- 🔒 CASO C: Marcador de posición inactivo (seguridad muerta o futura) -->
+
     <section v-if="false" class="perfil-card">
       <h1>Perfil no disponible</h1>
       <p class="descripcion">

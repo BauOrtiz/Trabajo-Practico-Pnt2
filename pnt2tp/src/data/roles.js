@@ -8,7 +8,7 @@ export const NOMBRES_ROLES = {
   [ROLES.USUARIO]: 'Usuario'
 }
 
-// Cuentas administradoras hardcodeadas.
+
 export const ADMINISTRADORES_HARDCODEADOS = [
   {
     id: 'admin-1',

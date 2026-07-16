@@ -3,65 +3,59 @@ import { computed, onMounted, ref } from 'vue'
 import { useAuthStore } from '../stores/storeAuth'
 import { useEstaticoStore } from '../stores/storeEstaticos'
 
-// --- 🛠️ 1. INICIALIZACIÓN DE STORES ---
-const authStore = useAuthStore()       // Store de autenticación (valida roles como "Admin")
-const estaticoStore = useEstaticoStore() // Store global de datos del mundial
 
-// --- 📍 2. ESTADOS REACTIVOS LOCALES ---
-const mensaje = ref('')              // Mensaje de éxito o error para las acciones de grupos
-const finalizandoGrupos = ref(false) // Bandera visual para deshabilitar botones durante procesos asíncronos
+const authStore = useAuthStore()       
+const estaticoStore = useEstaticoStore() 
 
-// --- 📊 3. PROPIEDADES COMPUTADAS (REACTIVAS) ---
 
-// cargando: Determina si el sistema está trayendo los datos y la lista de partidos todavía está vacía
+const mensaje = ref('')              
+const finalizandoGrupos = ref(false) 
+
+
+
+
 const cargando = computed(() => estaticoStore.loading && estaticoStore.partidos.length === 0)
 
-// error: Captura y expone cualquier error que ocurra al intentar cargar los partidos desde el Store
+
 const error = computed(() => estaticoStore.errores.partidos || '')
 
-// --- ⚙️ 4. FUNCIONES DE NEGOCIO (FASE DE GRUPOS) ---
 
-/**
- * Cierra de golpe toda la Fase de Grupos. 
- * Fuerza que todos los partidos de grupos pasen a estado "finalizado" y calcula las llaves de eliminatorias.
- */
+
+
+
 async function finalizarFaseGrupos() {
   mensaje.value = ''
-  
-  finalizandoGrupos.value = true // Deshabilita el botón mientras procesa
+
+  finalizandoGrupos.value = true 
   try {
-    // Mandamos la orden al store para simular la finalización masiva
+
     await estaticoStore.finalizarPartidosFaseGrupos()
     mensaje.value = 'Fase de grupos finalizada. Ya se muestran los partidos eliminatorios.'
   } catch {
     mensaje.value = 'La fase de grupos se finalizó, pero no se pudieron cargar las eliminatorias.'
   } finally {
-    finalizandoGrupos.value = false // Liberamos el botón
+    finalizandoGrupos.value = false 
   }
 }
 
-/**
- * Restablece los partidos a la fase de grupos inicial, borrando las llaves y reabriendo los grupos
- */
+
+
 function restablecerFaseGrupos() {
   mensaje.value = ''
   estaticoStore.restablecerFaseGrupos()
   mensaje.value = 'Fase de grupos restablecida correctamente.'
 }
 
-// --- 🚀 5. CICLOS DE VIDA (LIFECYCLE HOOKS) ---
+
 onMounted(async () => {
-  // Aseguramos la carga de los partidos y estadios al montar la pantalla
+
   await estaticoStore.cargarDatosMundial()
 })
 </script>
 
 <template>
-  <!-- 
-    ========================================================================
-    🛠️ SECCIÓN 1: PANEL DE FECHA VIRTUAL (MÁQUINA DEL TIEMPO)
-    ========================================================================
-  -->
+
+
     <section v-if="authStore.isAdmin" class="encabezado">
 
       <div class="panel-admin" style="background: #0f172a; color: white; padding: 20px; border-radius: 12px; margin-bottom: 24px; border: 1.5px solid #10b981;">
@@ -94,11 +88,8 @@ onMounted(async () => {
         </div>
       </div>
     </section>
-  <!-- 
-    ========================================================================
-    📅 SECCIÓN 2: CONTROL GLOBAL DE LA FASE DE GRUPOS
-    ========================================================================
-  -->
+
+
   <main class="admin-page">
     <section v-if="authStore.isAdmin" class="encabezado">
       <div>
@@ -110,12 +101,12 @@ onMounted(async () => {
       </div>
     </section>
 
-    <!-- 🛡️ Bloqueo si el usuario logueado no es administrador -->
+
     <section v-if="!authStore.isAdmin" class="mensaje error">
       Esta sección está disponible solo para administradores.
     </section>
 
-    <!-- Estados de carga y error tradicionales -->
+
     <section v-else-if="cargando" class="mensaje">
       Cargando partidos...
     </section>
@@ -123,10 +114,10 @@ onMounted(async () => {
       {{ error }}
     </section>
 
-    <!-- Panel de administración principal -->
+
     <section v-else class="panel-admin">
-      
-      <!-- Bloque para finalizar la Fase de Grupos de golpe -->
+
+
       <div v-if="!estaticoStore.faseGruposFinalizada" class="accion-fase">
         <div>
           <h2>Finalizar fase de grupos</h2>
@@ -139,7 +130,7 @@ onMounted(async () => {
         </button>
       </div>
 
-      <!-- Bloque para restablecer todo a fase de grupos de nuevo (Solo si ya se finalizó) -->
+
       <div v-if="estaticoStore.gruposFinalizadosPorAdmin" class="accion-fase accion-fase--restablecer">
         <div>
           <h2>Restablecer fase de grupos</h2>
@@ -152,7 +143,7 @@ onMounted(async () => {
         </button>
       </div>
 
-      <!-- Cartelera para reportar el feedback del resultado de las acciones del Administrador -->
+
       <p v-if="mensaje" class="mensaje resultado">
         {{ mensaje }}
       </p>

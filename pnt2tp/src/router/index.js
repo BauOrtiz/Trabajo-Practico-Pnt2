@@ -19,7 +19,7 @@ import AdminCalendario from '../views/AdminCalendario.vue'
 
 
 const routes = [
-//Basicos:
+
     {
         path: '/',
         redirect: '/home'
@@ -39,14 +39,14 @@ const routes = [
          name: 'Perfil',
          component: Perfil
     },
-    
+
      {
         path: '/registro',
         name: 'Registro',
         component: Registro
     },
 
-//Partidos:
+
     {
         path: '/partidos',
         name: 'Partidos',
@@ -58,7 +58,7 @@ const routes = [
         component: DetallesPartido
     },
 
-//Estadios:
+
     {
         path: '/estadios',
         name: 'Estadios',
@@ -69,16 +69,16 @@ const routes = [
         name: 'DetalleEstadio',
         component: DetalleEstadio
     },
-    
 
-//Grupos:
+
+
     {
         path: '/grupos',
         name: 'Grupos',
         component: Grupos
     },
 
-//Prode:
+
     {
         path:'/prode',
         name: 'Prode',
@@ -97,7 +97,7 @@ const routes = [
         component: AdminCalendario
     },
 
-//Paises:
+
     {
         path:'/paises',
         name: 'Paises',
@@ -110,7 +110,7 @@ const routes = [
         component: Pais
     },
 
-//NotFound:
+
 
     {
         path: '/:pathMatch(.*)*',

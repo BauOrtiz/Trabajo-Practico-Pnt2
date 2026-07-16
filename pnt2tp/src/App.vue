@@ -7,20 +7,20 @@ import { obtenerPredicciones } from './services/prediccionesService'
 import { calcularPuntosDesdePredicciones } from './services/puntosService'
 import { useEstaticoStore } from './stores/storeEstaticos'
 
-// --- ⚙️ 1. SERVICIOS Y CONEXIÓN DE STORES ---
-const authStore = useAuthStore()         // Store global de autenticación (usuario actual, roles, login/logout)
-const storeEstaticos = useEstaticoStore() // Store global para partidos del fixture mundialista
-const router = useRouter()               // Enrutador global de Vue Router
-const route = useRoute()                 // Objeto para leer propiedades de la ruta actual (query params)
 
-// --- 📍 2. ESTADOS REACTIVOS LOCALES ---
-const mostrarLogin = ref(false) // Controla la visibilidad del Modal de Login global
-const mostrarMenu = ref(false)  // Controla la visibilidad del panel lateral flotante (Drawer de usuario)
-const predicciones = ref([])    // Lista de predicciones personales del usuario logueado
+const authStore = useAuthStore()         
+const storeEstaticos = useEstaticoStore() 
+const router = useRouter()               
+const route = useRoute()                 
 
-// --- 🧭 3. GESTIÓN DE ENLACES DE NAVEGACIÓN (NAVBAR) ---
 
-// Lista de rutas públicas fijas que se muestran en la barra superior principal
+const mostrarLogin = ref(false) 
+const mostrarMenu = ref(false)  
+const predicciones = ref([])    
+
+
+
+
 const linksBaseNavbar = [
   { to: '/home', label: 'Inicio' },
   { to: '/partidos', label: 'Partidos' },
@@ -30,8 +30,7 @@ const linksBaseNavbar = [
   { to: '/estadios', label: 'Estadios' }
 ]
 
-// linksMenu: Modifica dinámicamente los accesos del menú agregando la ruta '/perfil'
-// únicamente si el usuario se encuentra con sesión iniciada.
+
 const linksMenu = computed(() => {
   const links = [...linksBaseNavbar]
 
@@ -45,14 +44,12 @@ const linksMenu = computed(() => {
   return links
 })
 
-// nombreUsuario: Obtiene el identificador visible del usuario logueado.
-// Prioriza el Nombre, de no existir usa el Email, y si no hay sesión iniciada devuelve 'Usuario'.
+
 const nombreUsuario = computed(() => {
   return authStore.user?.nombre || authStore.user?.email || 'Usuario'
 })
 
-// puntosProde: ¡Lógica dinámica del Prode!
-// Calcula reactivamente los puntos acumulados sumando los aciertos de las predicciones del usuario.
+
 const puntosProde = computed(() => {
   const partidosFinalizados = (storeEstaticos.partidosConEstadoCalculado || [])
     .filter((partido) => partido.estado === 'finalizado')
@@ -60,92 +57,76 @@ const puntosProde = computed(() => {
   return calcularPuntosDesdePredicciones(predicciones.value, partidosFinalizados)
 })
 
-// --- 🔓 4. INTERFACES Y ACCIONES DE LOGIN/LOGOUT ---
 
-/**
- * Invoca la apertura del Modal de Login global, cerrando preventivamente el menú lateral
- */
+
+
+
 function abrirLogin() {
   cerrarMenu()
   mostrarLogin.value = true
 }
 
-/**
- * Cierra definitivamente el Modal de Login
- */
+
+
 function cerrarLogin() {
   mostrarLogin.value = false
 }
 
-/**
- * Callback ejecutado si el usuario presiona "Registrarse" dentro del modal.
- * Como el modal de login tiene metida la lógica de redirección a la ruta /registro,
- * simplemente cerramos el modal actual para no superponer interfaces.
- */
+
+
 function irARegistroDesdeLogin() {
   cerrarLogin()
 }
 
-// --- 👤 5. GESTIÓN DEL MENÚ LATERAL (DRAWER DE USUARIO) ---
 
-/**
- * Abre el panel flotante de usuario, asegurándose de actualizar y recargar 
- * las apuestas guardadas para que los puntos se muestren siempre al día.
- */
+
+
+
 async function abrirMenu() {
   cargarPredicciones()
   mostrarMenu.value = true
 }
 
-/**
- * Oculta el panel lateral del usuario
- */
+
+
 function cerrarMenu() {
   mostrarMenu.value = false
 }
 
-/**
- * Limpia las credenciales de sesión en Pinia y cierra el panel lateral
- */
+
+
 function cerrarSesion() {
   authStore.logout()
   cerrarMenu()
 }
 
-/**
- * Navega de forma programada a una ruta elegida desde el menú lateral y cierra el panel al finalizar
- */
+
+
 function navegarDesdeMenu(ruta) {
   router.push(ruta)
   cerrarMenu()
 }
 
-/**
- * Consulta y sincroniza las apuestas guardadas en el LocalStorage del usuario
- */
+
+
 function cargarPredicciones() {
   predicciones.value = obtenerPredicciones(authStore.user?.id)
 }
 
-/**
- * 🛡️ Capturador de Rutas Especiales:
- * Si una pantalla redirige al usuario con la instrucción `?login=1` en la URL (ej: al rebotar de /perfil),
- * esta función atrapa el parámetro, gatilla automáticamente el Modal de Login e inmediatamente
- * limpia la URL para remover el query param de manera prolija.
- */
+
+
 function abrirLoginDesdeRuta() {
   if (route.query.login !== '1' || authStore.isLoggedIn) {
     return
   }
 
   mostrarLogin.value = true
-  router.replace({ path: route.path, query: {} }) // Limpia el ?login=1 de la barra de navegación
+  router.replace({ path: route.path, query: {} }) 
 }
 
-// --- 👁️ 6. OBSERVADORES REACTIVOS (WATCHERS) ---
 
-// watch(user.id): Si el ID del usuario cambia (es decir, el usuario inicia sesión de forma exitosa),
-// actualiza las predicciones cargadas en el layout y cierra el modal de login de forma automática.
+
+
 watch(
   () => authStore.user?.id,
   (usuarioId) => {
@@ -157,26 +138,25 @@ watch(
   }
 )
 
-// watch(route.query.login): Vigilamos cambios en los parámetros de búsqueda de la URL para reaccionar
-// de inmediato si se solicita el inicio de sesión desde un click externo.
+
 watch(
   () => route.query.login,
   abrirLoginDesdeRuta
 )
 
-// --- 🚀 7. INICIALIZACIÓN ---
+
 onMounted(async () => {
-  await cargarPredicciones()     // Carga inicial de pronósticos guardados
-  await abrirLoginDesdeRuta()    // Verifica si la app se cargó de entrada con la petición de Login activa
+  await cargarPredicciones()     
+  await abrirLoginDesdeRuta()    
 })
 </script>
 
 <template>
   <div class="app-layout">
-    
-    <!--  HEADER DE LA APLICACIÓN -->
+
+
     <header class="header">
-      <!-- Botón flotante superior izquierdo (Ícono de Usuario) que despliega el Drawer del perfil -->
+
       <button
         type="button"
         class="menu-button"
@@ -189,9 +169,9 @@ onMounted(async () => {
         </svg>
       </button>
 
-      <!-- BARRA DE NAVEGACIÓN PRINCIPAL (NAVBAR) -->
+
       <nav class="navbar" aria-label="Navegacion principal">
-        <!-- Renderiza los enlaces fijos de la navbar superior -->
+
         <router-link
           v-for="link in linksBaseNavbar"
           :key="link.to"
@@ -200,12 +180,12 @@ onMounted(async () => {
           {{ link.label }}
         </router-link>
 
-        <!-- Acceso restringido visible únicamente si el usuario es Administrador -->
+
         <router-link v-if="authStore.isAdmin" to="/admin/calendario">
           Admin
         </router-link>
 
-        <!-- Botón de Login rápido integrado si no se detecta sesión iniciada -->
+
         <button
           v-if="!authStore.isLoggedIn"
           type="button"
@@ -217,14 +197,14 @@ onMounted(async () => {
       </nav>
     </header>
 
-    <!-- 👥 MENÚ LATERAL DESPLIZABLE (DRAWER DE USUARIO) -->
+
     <div v-if="mostrarMenu" class="drawer-backdrop" @click.self="cerrarMenu">
       <aside class="side-menu" aria-label="Administracion del usuario">
         <div>
           <div class="side-menu-header">
             <h2>Usuario</h2>
 
-            <!-- Cruz de cierre para plegar el menú lateral -->
+
             <button
               type="button"
               class="side-menu-close"
@@ -235,20 +215,20 @@ onMounted(async () => {
             </button>
           </div>
 
-          <!-- SUBPANEL 1: Sesión Iniciada (Muestra Nombre, Rol y Puntos en tiempo real) -->
+
           <section v-if="authStore.isLoggedIn" class="user-summary">
             <p class="user-name">{{ nombreUsuario }}</p>
             <p class="user-role">{{ authStore.nombreRol }}</p>
             <p class="user-points">{{ puntosProde }} puntos</p>
           </section>
 
-          <!-- SUBPANEL 2: Estado Anónimo (Si no hay credenciales activas) -->
+
           <section v-else class="user-summary">
             <p class="user-name">Sin sesion iniciada</p>
             <p class="user-points">0 puntos</p>
           </section>
 
-          <!-- Links de navegación internos del menú lateral (Incluye perfil del usuario) -->
+
           <nav class="side-menu-links" aria-label="Navegacion lateral">
             <router-link
               v-for="link in linksMenu"
@@ -259,7 +239,7 @@ onMounted(async () => {
               {{ link.label }}
             </router-link>
 
-            <!-- Acceso de administración duplicado en el menú lateral para comodidad -->
+
             <router-link
               v-if="authStore.isAdmin"
               to="/admin/calendario"
@@ -270,7 +250,7 @@ onMounted(async () => {
           </nav>
         </div>
 
-        <!-- BOTÓN DE ACCIÓN INFERIOR DEL MENÚ -->
+
         <button
           v-if="authStore.isLoggedIn"
           type="button"
@@ -291,15 +271,15 @@ onMounted(async () => {
       </aside>
     </div>
 
-    <!-- 🚀 CONTENEDOR DE LAS VISTAS DE LA APP (DÓNDE SE DIBUJA CADA PÁGINA) -->
+
     <main class="main-content">
       <router-view />
     </main>
 
-    <!-- 🔑 MODAL DE INICIO DE SESIÓN GLOBAL -->
+
     <div v-if="mostrarLogin" class="modal-backdrop" @click.self="cerrarLogin">
       <section class="login-modal" aria-label="Inicio de sesión">
-        <!-- Cruz de cierre para el modal -->
+
         <button
           type="button"
           class="modal-close"
@@ -309,10 +289,8 @@ onMounted(async () => {
           ×
         </button>
 
-        <!-- 
-          Inyectamos el componente de Login de forma modular. 
-          Escucha el evento '@registrarse' para cerrar este modal y mandar al usuario a la vista de registro.
-        -->
+
+
         <Login @registrarse="irARegistroDesdeLogin" />
       </section>
     </div>
