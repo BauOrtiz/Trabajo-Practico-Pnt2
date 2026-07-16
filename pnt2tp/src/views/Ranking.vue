@@ -235,7 +235,10 @@ onMounted(async () => {
 
     <!-- TABLA 3: Ranking de amigos (Competencia del Prode con tus compañeros) -->
     <section class="ranking-amigos">
-      <h2 class="amigos-titulo">Ranking de amigos</h2>
+      <section v-if="!estaticoStore.faseGruposFinalizada"><h2 class="amigos-titulo">Ranking de amigos Grupos</h2></section>
+      <section v-if="estaticoStore.faseGruposFinalizada"><h2 class="amigos-titulo">Ranking de amigos Fase Eliminatorias</h2></section>
+
+      
       <div v-if="cargandoAmigos" class="mensaje">Cargando amigos...</div>
       <div v-else-if="errorAmigos" class="mensaje error">
         {{ errorAmigos }}
